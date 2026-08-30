@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
 import { PAPER_SIZES, formatPrice, type PaperSize } from "@/lib/pricing";
 import { Button } from "@/components/Button";
 import {
@@ -74,6 +75,7 @@ export default function OrderForm() {
   const [readyToChoosePayment, setReadyToChoosePayment] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadStage, setUploadStage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -178,6 +180,32 @@ export default function OrderForm() {
   async function submitOrder(finalItems: CartItem[], method: "pix" | "card") {
     if (!formRef.current) return;
     setSubmitError(null);
+    setSubmitting(true);
+
+    let referenceFilesByItem: string[][];
+    try {
+      setUploadStage("Enviando fotos...");
+      referenceFilesByItem = await Promise.all(
+        finalItems.map((item) =>
+          Promise.all(
+            item.files.map(async (file) => {
+              const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+              const blob = await upload(`uploads/${safeName}`, file, {
+                access: "private",
+                handleUploadUrl: "/api/upload",
+              });
+              return blob.pathname;
+            })
+          )
+        )
+      );
+    } catch {
+      setSubmitError("Falha ao enviar as fotos. Verifique sua internet e tente novamente.");
+      setSubmitting(false);
+      setUploadStage(null);
+      return;
+    }
+    setUploadStage(null);
 
     const formData = new FormData(formRef.current);
     formData.set("paymentMethod", method);
@@ -187,10 +215,9 @@ export default function OrderForm() {
       formData.set(`item_${i}_theme`, item.theme);
       formData.set(`item_${i}_quantity`, String(item.quantity));
       formData.set(`item_${i}_description`, itemFinalDescription(item));
-      item.files.forEach((file) => formData.append(`item_${i}_referenceFiles`, file));
+      formData.set(`item_${i}_referenceFiles`, JSON.stringify(referenceFilesByItem[i]));
     });
 
-    setSubmitting(true);
     try {
       const res = await fetch("/api/orders", { method: "POST", body: formData });
       const data = await res.json();
@@ -681,7 +708,7 @@ export default function OrderForm() {
                   onClick={() => handleChoosePayment("pix")}
                   className="flex w-full items-center justify-center gap-2 border-2 border-accent bg-accent px-6 py-4 text-base font-medium text-white transition-colors hover:bg-accent-dark disabled:opacity-60"
                 >
-                  <QrCode size={20} /> {submitting ? "Enviando..." : "Pagar com Pix"}
+                  <QrCode size={20} /> {submitting ? (uploadStage ?? "Enviando...") : "Pagar com Pix"}
                 </button>
                 <button
                   type="button"
@@ -689,13 +716,13 @@ export default function OrderForm() {
                   onClick={() => handleChoosePayment("card")}
                   className="flex w-full items-center justify-center gap-2 border-2 border-accent px-6 py-4 text-base font-medium text-accent transition-colors hover:bg-accent hover:text-white disabled:opacity-60"
                 >
-                  <CreditCard size={20} /> {submitting ? "Enviando..." : "Pagar com cartão"}
+                  <CreditCard size={20} /> {submitting ? (uploadStage ?? "Enviando...") : "Pagar com cartão"}
                 </button>
               </div>
             ) : (
               <Button type="submit" disabled={submitting} className="mt-4 w-full">
                 {submitting
-                  ? "Enviando..."
+                  ? (uploadStage ?? "Enviando...")
                   : overallHasCustom
                     ? "Enviar pedido de orçamento"
                     : "Ir para pagamento"}
@@ -755,7 +782,7 @@ export default function OrderForm() {
             </div>
             <Button type="submit" disabled={submitting} className="flex-1 max-w-[220px]">
               {submitting
-                ? "Enviando..."
+                ? (uploadStage ?? "Enviando...")
                 : overallHasCustom
                   ? "Enviar orçamento"
                   : "Ir para pagamento"}

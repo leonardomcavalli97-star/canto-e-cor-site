@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  createOrder,
-  saveReferenceFiles,
-  updateOrderItems,
-  type OrderItem,
-  type OrderTheme,
-} from "@/lib/orders";
+import { createOrder, type OrderItem, type OrderTheme } from "@/lib/orders";
 import { PAPER_SIZES, type PaperSize } from "@/lib/pricing";
 import { getStripe } from "@/lib/stripe";
 
 const MAX_FILES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_ITEMS = 10;
 
 export async function POST(req: NextRequest) {
@@ -37,7 +30,6 @@ export async function POST(req: NextRequest) {
   }
 
   const items: OrderItem[] = [];
-  const filesByItem: File[][] = [];
 
   for (let i = 0; i < itemCount; i++) {
     const paperSize = String(formData.get(`item_${i}_paperSize`) ?? "") as PaperSize;
@@ -61,35 +53,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const files = formData
-      .getAll(`item_${i}_referenceFiles`)
-      .filter((f): f is File => f instanceof File && f.size > 0);
+    let referenceFiles: string[] = [];
+    try {
+      const raw = JSON.parse(String(formData.get(`item_${i}_referenceFiles`) ?? "[]"));
+      if (Array.isArray(raw)) {
+        referenceFiles = raw.filter((url): url is string => typeof url === "string" && url.length > 0);
+      }
+    } catch {
+      referenceFiles = [];
+    }
 
-    if (files.length === 0) {
+    if (referenceFiles.length === 0) {
       return NextResponse.json(
         { error: `Envie ao menos uma foto de referência para o desenho ${i + 1}.` },
         { status: 400 }
       );
     }
-    if (files.length > MAX_FILES) {
+    if (referenceFiles.length > MAX_FILES) {
       return NextResponse.json(
         { error: `Envie no máximo ${MAX_FILES} fotos por desenho.` },
         { status: 400 }
       );
-    }
-    for (const file of files) {
-      if (file.size > MAX_FILE_SIZE) {
-        return NextResponse.json(
-          { error: `O arquivo "${file.name}" excede 10MB.` },
-          { status: 400 }
-        );
-      }
-      if (!file.type.startsWith("image/")) {
-        return NextResponse.json(
-          { error: `O arquivo "${file.name}" precisa ser uma imagem.` },
-          { status: 400 }
-        );
-      }
     }
 
     items.push({
@@ -97,10 +81,9 @@ export async function POST(req: NextRequest) {
       theme,
       description,
       quantity,
-      referenceFiles: [],
+      referenceFiles,
       unitPriceCents: PAPER_SIZES[paperSize].priceCents,
     });
-    filesByItem.push(files);
   }
 
   const hasCustomItem = items.some((item) => item.unitPriceCents === null);
@@ -121,11 +104,6 @@ export async function POST(req: NextRequest) {
           ? "pix_pending"
           : "pending_payment",
   });
-
-  for (let i = 0; i < items.length; i++) {
-    items[i].referenceFiles = await saveReferenceFiles(order.id, i, filesByItem[i]);
-  }
-  await updateOrderItems(order.id, items);
 
   if (totalPriceCents === null) {
     return NextResponse.json({ orderId: order.id, quotePending: true });

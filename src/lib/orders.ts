@@ -77,20 +77,6 @@ async function writeOrder(record: OrderRecord) {
   return record;
 }
 
-export async function saveReferenceFiles(orderId: string, itemIndex: number, files: File[]) {
-  const savedPaths: string[] = [];
-  for (const file of files) {
-    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    const pathname = `uploads/${orderId}/item-${itemIndex}/${randomUUID()}-${safeName}`;
-    const blob = await put(pathname, file, {
-      access: "private",
-      addRandomSuffix: false,
-    });
-    savedPaths.push(blob.pathname);
-  }
-  return savedPaths;
-}
-
 export async function createOrder(
   order: Omit<OrderRecord, "id" | "createdAt" | "status"> & {
     status?: OrderRecord["status"];
