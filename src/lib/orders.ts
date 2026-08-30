@@ -1,11 +1,6 @@
 import { randomUUID } from "crypto";
-import { mkdir, writeFile, readFile, readdir } from "fs/promises";
-import path from "path";
+import { put, get, list } from "@vercel/blob";
 import type { PaperSize } from "./pricing";
-
-const DATA_DIR = path.join(process.cwd(), "data");
-const ORDERS_DIR = path.join(DATA_DIR, "orders");
-const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 
 export type OrderTheme = "casal" | "pet" | "retrato" | "santo" | "homenagem" | "outro";
 
@@ -32,8 +27,7 @@ export interface OrderRecord {
 
 // Pedidos criados antes da mudança para múltiplos desenhos guardavam os
 // campos soltos (paperSize/theme/description/priceCents) em vez de `items`.
-// Isso adapta esses registros antigos para o formato novo, sem precisar
-// reescrever os arquivos já salvos em disco.
+// Isso adapta esses registros antigos para o formato novo.
 function normalizeOrder(raw: Record<string, unknown>): OrderRecord {
   if (Array.isArray(raw.items)) {
     return raw as unknown as OrderRecord;
@@ -62,17 +56,37 @@ function normalizeOrder(raw: Record<string, unknown>): OrderRecord {
   };
 }
 
-export async function saveReferenceFiles(orderId: string, itemIndex: number, files: File[]) {
-  const itemUploadsDir = path.join(UPLOADS_DIR, orderId, `item-${itemIndex}`);
-  await mkdir(itemUploadsDir, { recursive: true });
+function orderPathname(id: string) {
+  return `orders/${id}.json`;
+}
 
+async function readOrderJson(pathname: string): Promise<Record<string, unknown> | null> {
+  const result = await get(pathname, { access: "private", useCache: false });
+  if (!result || result.statusCode !== 200) return null;
+  const text = await new Response(result.stream).text();
+  return JSON.parse(text);
+}
+
+async function writeOrder(record: OrderRecord) {
+  await put(orderPathname(record.id), JSON.stringify(record, null, 2), {
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+  });
+  return record;
+}
+
+export async function saveReferenceFiles(orderId: string, itemIndex: number, files: File[]) {
   const savedPaths: string[] = [];
   for (const file of files) {
-    const buffer = Buffer.from(await file.arrayBuffer());
     const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    const fileName = `${randomUUID()}-${safeName}`;
-    await writeFile(path.join(itemUploadsDir, fileName), buffer);
-    savedPaths.push(`data/uploads/${orderId}/item-${itemIndex}/${fileName}`);
+    const pathname = `uploads/${orderId}/item-${itemIndex}/${randomUUID()}-${safeName}`;
+    const blob = await put(pathname, file, {
+      access: "private",
+      addRandomSuffix: false,
+    });
+    savedPaths.push(blob.pathname);
   }
   return savedPaths;
 }
@@ -82,7 +96,6 @@ export async function createOrder(
     status?: OrderRecord["status"];
   }
 ) {
-  await mkdir(ORDERS_DIR, { recursive: true });
   const id = randomUUID();
   const record: OrderRecord = {
     ...order,
@@ -90,20 +103,15 @@ export async function createOrder(
     createdAt: new Date().toISOString(),
     status: order.status ?? "pending_payment",
   };
-  await writeFile(
-    path.join(ORDERS_DIR, `${id}.json`),
-    JSON.stringify(record, null, 2)
-  );
-  return record;
+  return writeOrder(record);
 }
 
 export async function updateOrderItems(id: string, items: OrderItem[]) {
-  const filePath = path.join(ORDERS_DIR, `${id}.json`);
-  const raw = await readFile(filePath, "utf-8");
-  const record: OrderRecord = JSON.parse(raw);
+  const raw = await readOrderJson(orderPathname(id));
+  if (!raw) throw new Error("Pedido não encontrado.");
+  const record = normalizeOrder(raw);
   record.items = items;
-  await writeFile(filePath, JSON.stringify(record, null, 2));
-  return record;
+  return writeOrder(record);
 }
 
 export async function updateOrderStatus(
@@ -111,37 +119,38 @@ export async function updateOrderStatus(
   status: OrderRecord["status"],
   stripeSessionId?: string
 ) {
-  const filePath = path.join(ORDERS_DIR, `${id}.json`);
-  const raw = await readFile(filePath, "utf-8");
-  const record: OrderRecord = JSON.parse(raw);
+  const raw = await readOrderJson(orderPathname(id));
+  if (!raw) throw new Error("Pedido não encontrado.");
+  const record = normalizeOrder(raw);
   record.status = status;
   if (stripeSessionId) record.stripeSessionId = stripeSessionId;
-  await writeFile(filePath, JSON.stringify(record, null, 2));
-  return record;
+  return writeOrder(record);
 }
 
 export async function getOrder(id: string): Promise<OrderRecord | null> {
   try {
-    const raw = await readFile(path.join(ORDERS_DIR, `${id}.json`), "utf-8");
-    return normalizeOrder(JSON.parse(raw));
+    const raw = await readOrderJson(orderPathname(id));
+    return raw ? normalizeOrder(raw) : null;
   } catch {
     return null;
   }
 }
 
 export async function listOrders(): Promise<OrderRecord[]> {
-  let files: string[];
-  try {
-    files = await readdir(ORDERS_DIR);
-  } catch {
-    return [];
-  }
+  const { blobs } = await list({ prefix: "orders/" });
 
   const orders = await Promise.all(
-    files
-      .filter((f) => f.endsWith(".json"))
-      .map(async (f) => normalizeOrder(JSON.parse(await readFile(path.join(ORDERS_DIR, f), "utf-8"))))
+    blobs.map(async (b) => {
+      try {
+        const raw = await readOrderJson(b.pathname);
+        return raw ? normalizeOrder(raw) : null;
+      } catch {
+        return null;
+      }
+    })
   );
 
-  return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return orders
+    .filter((o): o is OrderRecord => o !== null)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
