@@ -24,6 +24,17 @@ export const PAPER_SIZES: Record<
   },
 };
 
+export const SHIPPING_FLAT_CENTS = 2500;
+const FREE_SHIPPING_CITY = "campo grande";
+const FREE_SHIPPING_STATE = "ms";
+
+export function isFreeShippingAddress(city: string, state: string) {
+  return (
+    city.trim().toLowerCase() === FREE_SHIPPING_CITY &&
+    state.trim().toLowerCase() === FREE_SHIPPING_STATE
+  );
+}
+
 export function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", {
     style: "currency",

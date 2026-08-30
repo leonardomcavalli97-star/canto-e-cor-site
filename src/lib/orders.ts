@@ -13,6 +13,26 @@ export interface OrderItem {
   unitPriceCents: number | null;
 }
 
+export interface ShippingAddress {
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+}
+
+const EMPTY_ADDRESS: ShippingAddress = {
+  cep: "",
+  street: "",
+  number: "",
+  complement: "",
+  neighborhood: "",
+  city: "",
+  state: "",
+};
+
 export interface OrderRecord {
   id: string;
   createdAt: string;
@@ -21,6 +41,8 @@ export interface OrderRecord {
   email: string;
   phone: string;
   items: OrderItem[];
+  shippingAddress: ShippingAddress;
+  shippingCents: number;
   totalPriceCents: number | null;
   stripeSessionId?: string;
 }
@@ -29,8 +51,11 @@ export interface OrderRecord {
 // campos soltos (paperSize/theme/description/priceCents) em vez de `items`.
 // Isso adapta esses registros antigos para o formato novo.
 function normalizeOrder(raw: Record<string, unknown>): OrderRecord {
+  const shippingAddress = (raw.shippingAddress as ShippingAddress) ?? EMPTY_ADDRESS;
+  const shippingCents = typeof raw.shippingCents === "number" ? raw.shippingCents : 0;
+
   if (Array.isArray(raw.items)) {
-    return raw as unknown as OrderRecord;
+    return { ...(raw as unknown as OrderRecord), shippingAddress, shippingCents };
   }
 
   const legacyPriceCents = (raw.priceCents as number | null) ?? null;
@@ -51,6 +76,8 @@ function normalizeOrder(raw: Record<string, unknown>): OrderRecord {
         unitPriceCents: legacyPriceCents,
       },
     ],
+    shippingAddress,
+    shippingCents,
     totalPriceCents: legacyPriceCents,
     stripeSessionId: raw.stripeSessionId as string | undefined,
   };

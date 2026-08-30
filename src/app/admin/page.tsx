@@ -11,12 +11,24 @@ type OrderItem = {
   unitPriceCents: number | null;
 };
 
+type ShippingAddress = {
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+};
+
 type Order = {
   id: string;
   name: string;
   email: string;
   phone: string;
   items: OrderItem[];
+  shippingAddress: ShippingAddress;
+  shippingCents: number;
   totalPriceCents: number | null;
   status: string;
   createdAt: string;
@@ -58,6 +70,21 @@ function OrderCard({ order, onMarkPaid }: { order: Order; onMarkPaid: (id: strin
           </li>
         ))}
       </ul>
+      {order.shippingAddress?.cep && (
+        <div className="mt-2 border-t border-border pt-2 text-sm text-foreground/70">
+          <p>
+            {order.shippingAddress.street}, {order.shippingAddress.number}
+            {order.shippingAddress.complement ? ` - ${order.shippingAddress.complement}` : ""}
+          </p>
+          <p>
+            {order.shippingAddress.neighborhood} · {order.shippingAddress.city} -{" "}
+            {order.shippingAddress.state} · CEP {order.shippingAddress.cep}
+          </p>
+          <p className="text-xs text-muted">
+            Frete: {order.shippingCents === 0 ? "Grátis" : formatPrice(order.shippingCents)}
+          </p>
+        </div>
+      )}
       <div className="mt-3 flex items-center justify-between">
         <span className="text-xs tracking-wide text-foreground/60 uppercase">
           {STATUS_LABELS[order.status] ?? order.status}

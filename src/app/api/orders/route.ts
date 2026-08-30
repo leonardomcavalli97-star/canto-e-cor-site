@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createOrder, type OrderItem, type OrderTheme } from "@/lib/orders";
-import { PAPER_SIZES, type PaperSize } from "@/lib/pricing";
+import { createOrder, type OrderItem, type OrderTheme, type ShippingAddress } from "@/lib/orders";
+import { PAPER_SIZES, SHIPPING_FLAT_CENTS, isFreeShippingAddress, type PaperSize } from "@/lib/pricing";
 import { getStripe } from "@/lib/stripe";
 
 const MAX_FILES = 5;
@@ -17,6 +17,30 @@ export async function POST(req: NextRequest) {
   if (!name || !email || !phone) {
     return NextResponse.json(
       { error: "Preencha todos os campos obrigatórios." },
+      { status: 400 }
+    );
+  }
+
+  const shippingAddress: ShippingAddress = {
+    cep: String(formData.get("cep") ?? "").trim(),
+    street: String(formData.get("street") ?? "").trim(),
+    number: String(formData.get("number") ?? "").trim(),
+    complement: String(formData.get("complement") ?? "").trim(),
+    neighborhood: String(formData.get("neighborhood") ?? "").trim(),
+    city: String(formData.get("city") ?? "").trim(),
+    state: String(formData.get("state") ?? "").trim(),
+  };
+
+  if (
+    shippingAddress.cep.replace(/\D/g, "").length !== 8 ||
+    !shippingAddress.street ||
+    !shippingAddress.number ||
+    !shippingAddress.neighborhood ||
+    !shippingAddress.city ||
+    !shippingAddress.state
+  ) {
+    return NextResponse.json(
+      { error: "Preencha o endereço de entrega completo." },
       { status: 400 }
     );
   }
@@ -87,15 +111,19 @@ export async function POST(req: NextRequest) {
   }
 
   const hasCustomItem = items.some((item) => item.unitPriceCents === null);
-  const totalPriceCents = hasCustomItem
-    ? null
-    : items.reduce((sum, item) => sum + (item.unitPriceCents ?? 0) * item.quantity, 0);
+  const shippingCents = isFreeShippingAddress(shippingAddress.city, shippingAddress.state)
+    ? 0
+    : SHIPPING_FLAT_CENTS;
+  const itemsSubtotal = items.reduce((sum, item) => sum + (item.unitPriceCents ?? 0) * item.quantity, 0);
+  const totalPriceCents = hasCustomItem ? null : itemsSubtotal + shippingCents;
 
   const order = await createOrder({
     name,
     email,
     phone,
     items,
+    shippingAddress,
+    shippingCents,
     totalPriceCents,
     status:
       totalPriceCents === null
@@ -117,10 +145,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer_email: email,
-      line_items: items.map((item) => ({
+    const lineItems = [
+      ...items.map((item) => ({
         price_data: {
           currency: "brl",
           unit_amount: item.unitPriceCents!,
@@ -131,6 +157,23 @@ export async function POST(req: NextRequest) {
         },
         quantity: item.quantity,
       })),
+      ...(shippingCents > 0
+        ? [
+            {
+              price_data: {
+                currency: "brl",
+                unit_amount: shippingCents,
+                product_data: { name: "Frete" },
+              },
+              quantity: 1,
+            },
+          ]
+        : []),
+    ];
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer_email: email,
+      line_items: lineItems,
       metadata: {
         orderId: order.id,
       },

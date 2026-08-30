@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import { PAPER_SIZES, formatPrice, type PaperSize } from "@/lib/pricing";
+import { PAPER_SIZES, SHIPPING_FLAT_CENTS, isFreeShippingAddress, formatPrice, type PaperSize } from "@/lib/pricing";
 import { Button } from "@/components/Button";
 import {
   CreditCard,
@@ -72,6 +72,18 @@ export default function OrderForm() {
   // Desenhos já adicionados ao pedido.
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
+  // Endereço de entrega.
+  const [cep, setCep] = useState("");
+  const [street, setStreet] = useState("");
+  const [number, setNumber] = useState("");
+  const [complement, setComplement] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const [addressError, setAddressError] = useState<string | null>(null);
+
   const [readyToChoosePayment, setReadyToChoosePayment] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -122,6 +134,47 @@ export default function OrderForm() {
 
   function removeFile(index: number) {
     setFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function lookupCep(digits: string) {
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        setCepError("CEP não encontrado. Preencha o endereço manualmente.");
+      } else {
+        setCepError(null);
+        setStreet(data.logradouro ?? "");
+        setNeighborhood(data.bairro ?? "");
+        setCity(data.localidade ?? "");
+        setState(data.uf ?? "");
+      }
+    } catch {
+      setCepError("Não foi possível buscar o CEP. Preencha manualmente.");
+    } finally {
+      setCepLoading(false);
+    }
+  }
+
+  function handleCepChange(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, 8);
+    const formatted = digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+    setCep(formatted);
+    setCepError(null);
+    if (digits.length === 8) {
+      void lookupCep(digits);
+    }
+  }
+
+  function validateAddress(): string | null {
+    if (cep.replace(/\D/g, "").length !== 8) return "Informe um CEP válido.";
+    if (!street.trim()) return "Informe a rua/logradouro.";
+    if (!number.trim()) return "Informe o número.";
+    if (!neighborhood.trim()) return "Informe o bairro.";
+    if (!city.trim()) return "Informe a cidade.";
+    if (!state.trim()) return "Informe o estado (UF).";
+    return null;
   }
 
   function resetCurrentItem() {
@@ -210,6 +263,13 @@ export default function OrderForm() {
     const formData = new FormData(formRef.current);
     formData.set("paymentMethod", method);
     formData.set("itemCount", String(finalItems.length));
+    formData.set("cep", cep);
+    formData.set("street", street);
+    formData.set("number", number);
+    formData.set("complement", complement);
+    formData.set("neighborhood", neighborhood);
+    formData.set("city", city);
+    formData.set("state", state);
     finalItems.forEach((item, i) => {
       formData.set(`item_${i}_paperSize`, item.paperSize);
       formData.set(`item_${i}_theme`, item.theme);
@@ -258,6 +318,13 @@ export default function OrderForm() {
     const finalItems = computeFinalItems();
     if (!finalItems) return;
 
+    const addressErr = validateAddress();
+    if (addressErr) {
+      setAddressError(addressErr);
+      return;
+    }
+    setAddressError(null);
+
     const hasCustom = finalItems.some((item) => itemUnitPrice(item) === null);
     if (hasCustom) {
       submitOrder(finalItems, "card");
@@ -269,6 +336,12 @@ export default function OrderForm() {
   function handleChoosePayment(method: "pix" | "card") {
     const finalItems = computeFinalItems();
     if (!finalItems) {
+      setReadyToChoosePayment(false);
+      return;
+    }
+    const addressErr = validateAddress();
+    if (addressErr) {
+      setAddressError(addressErr);
       setReadyToChoosePayment(false);
       return;
     }
@@ -288,7 +361,9 @@ export default function OrderForm() {
     return unit === null ? sum : sum + unit * item.quantity;
   }, 0);
   const currentSubtotal = willIncludeCurrent && currentUnitPrice !== null ? currentUnitPrice * quantity : 0;
-  const grandTotal = overallHasCustom ? null : cartSubtotal + currentSubtotal;
+  const isFreeShipping = isFreeShippingAddress(city, state);
+  const shippingCents = isFreeShipping ? 0 : SHIPPING_FLAT_CENTS;
+  const grandTotal = overallHasCustom ? null : cartSubtotal + currentSubtotal + shippingCents;
 
   const totalPieceCount =
     cartItems.reduce((n, item) => n + item.quantity, 0) + (willIncludeCurrent ? quantity : 0);
@@ -611,6 +686,102 @@ export default function OrderForm() {
             </div>
           </fieldset>
 
+          <fieldset>
+            <legend className="flex items-baseline gap-3">
+              <span className="font-serif-display text-3xl text-accent/40">06</span>
+              <span className="font-serif-display text-xl text-foreground">Endereço de entrega</span>
+            </legend>
+            <div className="mt-4 grid gap-4 sm:grid-cols-4">
+              <div>
+                <label className="text-sm text-foreground/70" htmlFor="cep">CEP</label>
+                <input
+                  id="cep"
+                  value={cep}
+                  onChange={(e) => handleCepChange(e.target.value)}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="00000-000"
+                  autoComplete="postal-code"
+                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                />
+                {cepLoading && <p className="mt-1 text-xs text-muted">Buscando endereço...</p>}
+              </div>
+              <div className="sm:col-span-3">
+                <label className="text-sm text-foreground/70" htmlFor="street">Rua / logradouro</label>
+                <input
+                  id="street"
+                  value={street}
+                  onChange={(e) => setStreet(e.target.value)}
+                  type="text"
+                  autoComplete="address-line1"
+                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-foreground/70" htmlFor="number">Número</label>
+                <input
+                  id="number"
+                  value={number}
+                  onChange={(e) => setNumber(e.target.value)}
+                  type="text"
+                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                />
+              </div>
+              <div className="sm:col-span-3">
+                <label className="text-sm text-foreground/70" htmlFor="complement">Complemento (opcional)</label>
+                <input
+                  id="complement"
+                  value={complement}
+                  onChange={(e) => setComplement(e.target.value)}
+                  type="text"
+                  placeholder="Apto, bloco, ponto de referência..."
+                  autoComplete="address-line2"
+                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm text-foreground/70" htmlFor="neighborhood">Bairro</label>
+                <input
+                  id="neighborhood"
+                  value={neighborhood}
+                  onChange={(e) => setNeighborhood(e.target.value)}
+                  type="text"
+                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-foreground/70" htmlFor="city">Cidade</label>
+                <input
+                  id="city"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  type="text"
+                  autoComplete="address-level2"
+                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-foreground/70" htmlFor="state">Estado</label>
+                <input
+                  id="state"
+                  value={state}
+                  onChange={(e) => setState(e.target.value.toUpperCase().slice(0, 2))}
+                  type="text"
+                  maxLength={2}
+                  autoComplete="address-level1"
+                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                />
+              </div>
+            </div>
+            {cepError && <p className="mt-2 text-sm text-accent">{cepError}</p>}
+            {addressError && <p className="mt-2 text-sm text-accent">{addressError}</p>}
+            <p className="mt-3 text-xs text-muted">
+              {isFreeShipping
+                ? "Frete grátis para Campo Grande - MS."
+                : `Frete fixo de ${formatPrice(SHIPPING_FLAT_CENTS)} para outras cidades.`}
+            </p>
+          </fieldset>
+
         </div>
 
         <aside className="hidden lg:block lg:sticky lg:top-28">
@@ -681,9 +852,19 @@ export default function OrderForm() {
               </div>
             )}
 
-            <div className="mt-6 flex items-baseline justify-between border-t border-border pt-4">
-              <span className="text-sm text-foreground/70">{overallHasCustom ? "Valor" : "Total"}</span>
-              <span className="font-serif-display text-2xl text-accent">{formatPrice(grandTotal)}</span>
+            <div className="mt-6 border-t border-border pt-4">
+              {!overallHasCustom && (
+                <div className="flex items-baseline justify-between text-sm text-foreground/70">
+                  <span>Frete{isFreeShipping ? " · Campo Grande, MS" : ""}</span>
+                  <span className={isFreeShipping ? "text-accent" : ""}>
+                    {isFreeShipping ? "Grátis" : formatPrice(SHIPPING_FLAT_CENTS)}
+                  </span>
+                </div>
+              )}
+              <div className={`flex items-baseline justify-between ${!overallHasCustom ? "mt-2" : ""}`}>
+                <span className="text-sm text-foreground/70">{overallHasCustom ? "Valor" : "Total"}</span>
+                <span className="font-serif-display text-2xl text-accent">{formatPrice(grandTotal)}</span>
+              </div>
             </div>
             {overallHasCustom && (
               <p className="mt-1 text-xs text-muted">
