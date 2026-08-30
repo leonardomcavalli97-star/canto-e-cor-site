@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import { PAPER_SIZES, SHIPPING_FLAT_CENTS, isFreeShippingAddress, formatPrice, type PaperSize } from "@/lib/pricing";
+import {
+  PAPER_SIZES,
+  SHIPPING_FLAT_CENTS,
+  THEME_OPTIONS as THEMES,
+  isFreeShippingAddress,
+  formatPrice,
+  type PaperSize,
+} from "@/lib/pricing";
 import { Button } from "@/components/Button";
 import {
   CreditCard,
@@ -16,15 +23,6 @@ import {
   QrCode,
   X,
 } from "lucide-react";
-
-const THEMES: { value: string; label: string }[] = [
-  { value: "casal", label: "Casal" },
-  { value: "pet", label: "Pet" },
-  { value: "retrato", label: "Retrato" },
-  { value: "santo", label: "Santo / Devocional" },
-  { value: "homenagem", label: "Homenagem" },
-  { value: "outro", label: "Outro" },
-];
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;

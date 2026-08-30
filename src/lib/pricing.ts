@@ -24,6 +24,19 @@ export const PAPER_SIZES: Record<
   },
 };
 
+export const THEME_OPTIONS: { value: string; label: string }[] = [
+  { value: "casal", label: "Casal" },
+  { value: "pet", label: "Pet" },
+  { value: "retrato", label: "Retrato" },
+  { value: "santo", label: "Santo / Devocional" },
+  { value: "homenagem", label: "Homenagem" },
+  { value: "outro", label: "Outro" },
+];
+
+export const THEME_LABELS: Record<string, string> = Object.fromEntries(
+  THEME_OPTIONS.map((t) => [t.value, t.label])
+);
+
 export const SHIPPING_FLAT_CENTS = 2500;
 const FREE_SHIPPING_CITY = "campo grande";
 const FREE_SHIPPING_STATE = "ms";
