@@ -549,53 +549,48 @@ function OrderDetailPanel({
   );
 }
 
-function OrderRow({
-  order,
-  onOpenDetails,
-  onOpenImage,
-  onMarkPaid,
-  onMarkShipped,
-  onCancel,
-}: {
+type RowProps = {
   order: Order;
   onOpenDetails: () => void;
   onOpenImage: (src: string) => void;
   onMarkPaid: (id: string) => void;
   onMarkShipped: (id: string) => void;
   onCancel: (id: string) => void;
-}) {
+};
+
+function DesktopOrderRow({ order, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel }: RowProps) {
   const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
 
   return (
-    <li
-      onClick={onOpenDetails}
-      className="cursor-pointer border-b border-border last:border-b-0 hover:bg-surface/60"
-    >
-      {/* Desktop / tablet row */}
-      <div className="hidden lg:grid lg:grid-cols-[1.7fr_1.8fr_0.85fr_0.9fr_1.05fr_1.15fr_auto] lg:items-center lg:gap-3 lg:px-4 lg:py-3">
-        <div className="min-w-0">
-          <p className="truncate font-serif-display text-base text-foreground">{order.name}</p>
-          <p className="truncate text-xs text-muted">{order.phone || order.email}</p>
-        </div>
+    <tr onClick={onOpenDetails} className="cursor-pointer border-b border-border last:border-b-0 hover:bg-surface/60">
+      <td className="min-w-0 px-4 py-3 align-middle">
+        <p className="truncate font-serif-display text-base text-foreground">{order.name}</p>
+        <p className="truncate text-xs text-muted">{order.phone || order.email}</p>
+      </td>
+      <td className="min-w-0 px-4 py-3 align-middle">
         <div className="flex min-w-0 items-center gap-2">
           <Thumbnails order={order} onOpen={onOpenImage} />
           <p className="truncate text-sm text-foreground/80">{orderSummary(order)}</p>
         </div>
-        <p className="text-xs text-muted">{formatDate(order.createdAt)}</p>
-        <p className="text-sm font-medium text-foreground">
-          {order.totalPriceCents === null ? (
-            <span className="text-accent">A combinar</span>
-          ) : (
-            formatPrice(order.totalPriceCents)
-          )}
-        </p>
-        <div>
-          <StatusBadge label={meta.payment} tone={meta.tone} />
-        </div>
-        <div>
-          <StatusBadge label={meta.order} tone={meta.tone} />
-        </div>
-        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+      </td>
+      <td className="px-4 py-3 align-middle text-xs whitespace-nowrap text-muted">
+        {formatDate(order.createdAt)}
+      </td>
+      <td className="px-4 py-3 text-right align-middle text-sm font-medium whitespace-nowrap text-foreground">
+        {order.totalPriceCents === null ? (
+          <span className="text-accent">A combinar</span>
+        ) : (
+          formatPrice(order.totalPriceCents)
+        )}
+      </td>
+      <td className="px-4 py-3 align-middle">
+        <StatusBadge label={meta.payment} tone={meta.tone} />
+      </td>
+      <td className="px-4 py-3 align-middle">
+        <StatusBadge label={meta.order} tone={meta.tone} />
+      </td>
+      <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1">
           <button
             type="button"
             onClick={onOpenDetails}
@@ -611,43 +606,51 @@ function OrderRow({
             onOpenDetails={onOpenDetails}
           />
         </div>
-      </div>
+      </td>
+    </tr>
+  );
+}
 
-      {/* Mobile card */}
-      <div className="flex flex-col gap-2 p-4 lg:hidden">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate font-serif-display text-base text-foreground">{order.name}</p>
-            <p className="truncate text-xs text-muted">{order.phone || order.email}</p>
-          </div>
-          <div onClick={(e) => e.stopPropagation()}>
-            <ActionsMenu
-              order={order}
-              onMarkPaid={onMarkPaid}
-              onMarkShipped={onMarkShipped}
-              onCancel={onCancel}
-              onOpenDetails={onOpenDetails}
-            />
-          </div>
+function MobileOrderCard({ order, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel }: RowProps) {
+  const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
+
+  return (
+    <li
+      onClick={onOpenDetails}
+      className="flex cursor-pointer flex-col gap-2 border-b border-border p-4 last:border-b-0 hover:bg-surface/60"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-serif-display text-base text-foreground">{order.name}</p>
+          <p className="truncate text-xs text-muted">{order.phone || order.email}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Thumbnails order={order} onOpen={onOpenImage} />
-          <p className="truncate text-sm text-foreground/80">{orderSummary(order)}</p>
+        <div onClick={(e) => e.stopPropagation()}>
+          <ActionsMenu
+            order={order}
+            onMarkPaid={onMarkPaid}
+            onMarkShipped={onMarkShipped}
+            onCancel={onCancel}
+            onOpenDetails={onOpenDetails}
+          />
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <StatusBadge label={meta.payment} tone={meta.tone} />
-          <StatusBadge label={meta.order} tone={meta.tone} />
-        </div>
-        <div className="flex items-center justify-between text-xs text-muted">
-          <span>{formatDate(order.createdAt)}</span>
-          <span className="text-sm font-medium text-foreground">
-            {order.totalPriceCents === null ? (
-              <span className="text-accent">A combinar</span>
-            ) : (
-              formatPrice(order.totalPriceCents)
-            )}
-          </span>
-        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Thumbnails order={order} onOpen={onOpenImage} />
+        <p className="truncate text-sm text-foreground/80">{orderSummary(order)}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <StatusBadge label={meta.payment} tone={meta.tone} />
+        <StatusBadge label={meta.order} tone={meta.tone} />
+      </div>
+      <div className="flex items-center justify-between text-xs text-muted">
+        <span>{formatDate(order.createdAt)}</span>
+        <span className="text-sm font-medium text-foreground">
+          {order.totalPriceCents === null ? (
+            <span className="text-accent">A combinar</span>
+          ) : (
+            formatPrice(order.totalPriceCents)
+          )}
+        </span>
       </div>
     </li>
   );
@@ -943,32 +946,60 @@ export default function AdminPage() {
       </div>
 
       <div className="mt-4 border border-border bg-surface">
-        <div className="hidden border-b border-border bg-background/60 px-4 py-2.5 text-[11px] font-medium tracking-wide text-muted uppercase lg:grid lg:grid-cols-[1.7fr_1.8fr_0.85fr_0.9fr_1.05fr_1.15fr_auto] lg:gap-3">
-          <span>Cliente</span>
-          <span>Pedido</span>
-          <span>Data</span>
-          <span>Valor</span>
-          <span>Pagamento</span>
-          <span>Status</span>
-          <span />
-        </div>
-
         {filtered.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted">Nenhum pedido encontrado.</p>
         ) : (
-          <ul>
-            {filtered.map((order) => (
-              <OrderRow
-                key={order.id}
-                order={order}
-                onOpenDetails={() => setSelectedId(order.id)}
-                onOpenImage={setLightboxSrc}
-                onMarkPaid={handleMarkPaid}
-                onMarkShipped={handleMarkShipped}
-                onCancel={handleCancel}
-              />
-            ))}
-          </ul>
+          <>
+            <table className="hidden w-full table-fixed border-collapse lg:table">
+              <colgroup>
+                <col className="w-[24%]" />
+                <col className="w-[25%]" />
+                <col className="w-[11%]" />
+                <col className="w-[12%]" />
+                <col className="w-[13%]" />
+                <col className="w-[15%]" />
+                <col className="w-[150px]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-border bg-background/60 text-[11px] font-medium tracking-wide text-muted uppercase">
+                  <th className="px-4 py-2.5 text-left font-medium">Cliente</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Pedido</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Data</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Valor</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Pagamento</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Status</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((order) => (
+                  <DesktopOrderRow
+                    key={order.id}
+                    order={order}
+                    onOpenDetails={() => setSelectedId(order.id)}
+                    onOpenImage={setLightboxSrc}
+                    onMarkPaid={handleMarkPaid}
+                    onMarkShipped={handleMarkShipped}
+                    onCancel={handleCancel}
+                  />
+                ))}
+              </tbody>
+            </table>
+
+            <ul className="lg:hidden">
+              {filtered.map((order) => (
+                <MobileOrderCard
+                  key={order.id}
+                  order={order}
+                  onOpenDetails={() => setSelectedId(order.id)}
+                  onOpenImage={setLightboxSrc}
+                  onMarkPaid={handleMarkPaid}
+                  onMarkShipped={handleMarkShipped}
+                  onCancel={handleCancel}
+                />
+              ))}
+            </ul>
+          </>
         )}
       </div>
 
