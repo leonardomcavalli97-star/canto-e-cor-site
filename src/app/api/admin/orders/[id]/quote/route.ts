@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { ADMIN_COOKIE_NAME, isValidSession } from "@/lib/adminAuth";
 import { getOrder, setOrderQuote } from "@/lib/orders";
 import { getStripe } from "@/lib/stripe";
+import { sendQuoteReadyEmail } from "@/lib/email";
 
 export async function POST(
   req: NextRequest,
@@ -57,6 +58,8 @@ export async function POST(
   } catch {
     checkoutUrl = null;
   }
+
+  await sendQuoteReadyEmail(order.email, order.name, amountCents, pixUrl, checkoutUrl);
 
   return NextResponse.json({ pixUrl, checkoutUrl });
 }

@@ -168,7 +168,9 @@ function QuoteForm({ orderId }: { orderId: string }) {
     <div className="mt-3 border-t border-border pt-3">
       {links ? (
         <div className="space-y-1 text-xs">
-          <p className="text-foreground/70">Envie um desses links pro cliente:</p>
+          <p className="text-foreground/70">
+            E-mail enviado pro cliente automaticamente. Links, se precisar:
+          </p>
           <p className="break-all">
             Pix:{" "}
             <a className="text-accent underline" href={links.pixUrl} target="_blank" rel="noreferrer">
