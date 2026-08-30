@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createOrder, type OrderItem, type OrderTheme, type ShippingAddress } from "@/lib/orders";
 import { PAPER_SIZES, SHIPPING_FLAT_CENTS, isFreeShippingAddress, type PaperSize } from "@/lib/pricing";
-import { getStripe } from "@/lib/stripe";
+import { createInfinitePayCheckout, type InfinitePayItem } from "@/lib/infinitepay";
 
 const MAX_FILES = 5;
 const MAX_ITEMS = 10;
@@ -144,44 +144,26 @@ export async function POST(req: NextRequest) {
   const origin = req.nextUrl.origin;
 
   try {
-    const stripe = getStripe();
-    const lineItems = [
-      ...items.map((item) => ({
-        price_data: {
-          currency: "brl",
-          unit_amount: item.unitPriceCents!,
-          product_data: {
-            name: `Aquarela ${PAPER_SIZES[item.paperSize].label}`,
-            description: `${PAPER_SIZES[item.paperSize].dimensions} · ${item.description}`.slice(0, 300),
-          },
-        },
-        quantity: item.quantity,
-      })),
-      ...(shippingCents > 0
-        ? [
-            {
-              price_data: {
-                currency: "brl",
-                unit_amount: shippingCents,
-                product_data: { name: "Frete" },
-              },
-              quantity: 1,
-            },
-          ]
-        : []),
-    ];
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer_email: email,
-      line_items: lineItems,
-      metadata: {
-        orderId: order.id,
-      },
-      success_url: `${origin}/pedido-confirmado?order_id=${order.id}`,
-      cancel_url: `${origin}/pedido-cancelado?order_id=${order.id}`,
+    const infinitePayItems: InfinitePayItem[] = items.map((item, i) => ({
+      id: String(i),
+      description: `Aquarela ${PAPER_SIZES[item.paperSize].label} · ${item.description}`.slice(0, 100),
+      quantity: item.quantity,
+      price: item.unitPriceCents!,
+    }));
+    if (shippingCents > 0) {
+      infinitePayItems.push({ id: "frete", description: "Frete", quantity: 1, price: shippingCents });
+    }
+
+    const checkoutUrl = await createInfinitePayCheckout({
+      orderNsu: order.id,
+      amountCents: totalPriceCents,
+      items: infinitePayItems,
+      customer: { name, email, phone },
+      redirectUrl: `${origin}/pedido-confirmado?order_id=${order.id}`,
+      webhookUrl: `${origin}/api/webhook/infinitepay`,
     });
 
-    return NextResponse.json({ checkoutUrl: session.url, orderId: order.id });
+    return NextResponse.json({ checkoutUrl, orderId: order.id });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro ao iniciar pagamento.";
     return NextResponse.json(

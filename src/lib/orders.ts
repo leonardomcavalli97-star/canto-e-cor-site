@@ -44,7 +44,7 @@ export interface OrderRecord {
   shippingAddress: ShippingAddress;
   shippingCents: number;
   totalPriceCents: number | null;
-  stripeSessionId?: string;
+  paymentReference?: string;
 }
 
 // Pedidos criados antes da mudança para múltiplos desenhos guardavam os
@@ -55,7 +55,8 @@ function normalizeOrder(raw: Record<string, unknown>): OrderRecord {
   const shippingCents = typeof raw.shippingCents === "number" ? raw.shippingCents : 0;
 
   if (Array.isArray(raw.items)) {
-    return { ...(raw as unknown as OrderRecord), shippingAddress, shippingCents };
+    const paymentReference = (raw.paymentReference ?? raw.stripeSessionId) as string | undefined;
+    return { ...(raw as unknown as OrderRecord), shippingAddress, shippingCents, paymentReference };
   }
 
   const legacyPriceCents = (raw.priceCents as number | null) ?? null;
@@ -79,7 +80,7 @@ function normalizeOrder(raw: Record<string, unknown>): OrderRecord {
     shippingAddress,
     shippingCents,
     totalPriceCents: legacyPriceCents,
-    stripeSessionId: raw.stripeSessionId as string | undefined,
+    paymentReference: (raw.paymentReference ?? raw.stripeSessionId) as string | undefined,
   };
 }
 
@@ -139,13 +140,13 @@ export async function setOrderQuote(id: string, totalPriceCents: number) {
 export async function updateOrderStatus(
   id: string,
   status: OrderRecord["status"],
-  stripeSessionId?: string
+  paymentReference?: string
 ) {
   const raw = await readOrderJson(orderPathname(id));
   if (!raw) throw new Error("Pedido não encontrado.");
   const record = normalizeOrder(raw);
   record.status = status;
-  if (stripeSessionId) record.stripeSessionId = stripeSessionId;
+  if (paymentReference) record.paymentReference = paymentReference;
   return writeOrder(record);
 }
 

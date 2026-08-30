@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE_NAME, isValidSession } from "@/lib/adminAuth";
 import { getOrder, setOrderQuote } from "@/lib/orders";
-import { getStripe } from "@/lib/stripe";
+import { createInfinitePayCheckout } from "@/lib/infinitepay";
 import { sendQuoteReadyEmail } from "@/lib/email";
 
 export async function POST(
@@ -36,25 +36,14 @@ export async function POST(
 
   let checkoutUrl: string | null = null;
   try {
-    const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer_email: order.email,
-      line_items: [
-        {
-          price_data: {
-            currency: "brl",
-            unit_amount: amountCents,
-            product_data: { name: "Aquarela personalizada · Canto e Cor" },
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: { orderId: id },
-      success_url: `${origin}/pedido-confirmado?order_id=${id}`,
-      cancel_url: `${origin}/pedido-cancelado?order_id=${id}`,
+    checkoutUrl = await createInfinitePayCheckout({
+      orderNsu: id,
+      amountCents,
+      items: [{ id: "personalizado", description: "Aquarela personalizada · Canto e Cor", quantity: 1, price: amountCents }],
+      customer: { name: order.name, email: order.email, phone: order.phone },
+      redirectUrl: `${origin}/pedido-confirmado?order_id=${id}`,
+      webhookUrl: `${origin}/api/webhook/infinitepay`,
     });
-    checkoutUrl = session.url;
   } catch {
     checkoutUrl = null;
   }

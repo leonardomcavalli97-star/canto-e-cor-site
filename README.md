@@ -24,7 +24,8 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `/galeria` — trabalhos do ateliê (fotos reais em `public/gallery/`)
 - `/sobre` — sobre o ateliê + seção "Quem pinta" com a história da Lívia
 - `/pedido` — **formulário de encomenda** (tamanho, tema, foto de referência,
-  descrição, dados de contato) → cria a encomenda e redireciona para o Stripe Checkout
+  descrição, dados de contato) → cria a encomenda e redireciona para o Pix (QR Code
+  próprio) ou o checkout da InfinitePay, dependendo do que o cliente escolher
 - `/contato` — Instagram do ateliê
 - `src/lib/pricing.ts` — tamanhos e preços (A5 R$150 / A4 R$180). Mude aqui se os
   valores da tabela mudarem.
@@ -33,25 +34,28 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `public/brand/` — logo, selo, "Made with love.", assinatura e listrados em SVG
 - `public/gallery/` — fotos das peças (WebP otimizado)
 
-## Pagamento (Stripe)
+## Pagamento
 
-O checkout usa o **Stripe Checkout** (redirecionamento hospedado pelo Stripe) — assim
-o site nunca lida diretamente com dados de cartão.
+**Pix**: código estático gerado na hora (via `pix-utils`, com a chave Pix do ateliê
+configurada em `src/lib/pix.ts`) — não depende de nenhuma conta/API externa.
 
-1. Crie uma conta em [stripe.com](https://stripe.com) (isso você precisa fazer você
-   mesma/o — eu não posso criar contas em seu nome).
-2. Copie `.env.example` para `.env.local` e preencha com suas chaves de teste:
+**Cartão**: usa o **Checkout Integrado da InfinitePay** (redirecionamento hospedado
+pela InfinitePay) — o site nunca lida diretamente com dados de cartão.
+
+1. Crie uma conta em [infinitepay.io](https://www.infinitepay.io/) (isso você precisa
+   fazer você mesma/o — eu não posso criar contas em seu nome) e pegue seu handle (@tag).
+2. Copie `.env.example` para `.env.local` e preencha:
    ```
-   STRIPE_SECRET_KEY=sk_test_...
-   STRIPE_WEBHOOK_SECRET=whsec_...
+   INFINITEPAY_HANDLE=seu-handle
+   INFINITEPAY_API_KEY=
    ```
-3. Para testar o webhook localmente, use a [Stripe CLI](https://stripe.com/docs/stripe-cli):
-   `stripe listen --forward-to localhost:3000/api/webhook`
-4. Quando estiver pronta para vender de verdade, troque pelas chaves de produção
-   (`sk_live_...` / `whsec_...` do endpoint configurado no Dashboard).
+3. A confirmação de pagamento chega por dois caminhos, por segurança: o webhook
+   (`/api/webhook/infinitepay`, informado automaticamente a cada cobrança criada) e uma
+   verificação ativa quando o cliente retorna pra página de confirmação.
 
-Sem essas chaves, o formulário de `/pedido` continua salvando a encomenda e as fotos
-normalmente, só não consegue gerar o link de pagamento (mostra um aviso amigável).
+Sem o handle configurado, o formulário de `/pedido` continua salvando a encomenda e as
+fotos normalmente, só não consegue gerar o link de pagamento por cartão (mostra um
+aviso amigável). O Pix funciona independente disso.
 
 ## Onde ficam os pedidos
 
@@ -64,7 +68,6 @@ saber quando chega um pedido novo.
 
 ## Próximos passos sugeridos
 
-- Configurar Stripe em produção e armazenamento externo para fotos/pedidos
-- Adicionar notificação (e-mail/WhatsApp) para avisar você a cada novo pedido pago
+- Configurar a InfinitePay em produção (handle real, sem chaves de teste)
 - Se quiser trocar "The Seasons"/Cormorant Garamond por outra fonte licenciada no
   futuro, é só trocar o import em `src/app/layout.tsx`

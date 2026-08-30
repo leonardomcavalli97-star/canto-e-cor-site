@@ -46,7 +46,7 @@ type Order = {
   totalPriceCents: number | null;
   status: string;
   createdAt: string;
-  stripeSessionId?: string;
+  paymentReference?: string;
 };
 
 type Tone = "waiting" | "attention" | "progress" | "done" | "cancelled";
@@ -109,7 +109,7 @@ function orderSummary(order: Order) {
 }
 
 function paymentMethodLabel(order: Order) {
-  if (order.stripeSessionId) return "Cartão";
+  if (order.paymentReference) return "Cartão";
   if (order.status === "pix_pending" || order.status === "paid" || order.status === "shipped") return "Pix";
   return "A definir";
 }
