@@ -127,6 +127,15 @@ export async function updateOrderItems(id: string, items: OrderItem[]) {
   return writeOrder(record);
 }
 
+export async function setOrderQuote(id: string, totalPriceCents: number) {
+  const raw = await readOrderJson(orderPathname(id));
+  if (!raw) throw new Error("Pedido não encontrado.");
+  const record = normalizeOrder(raw);
+  record.totalPriceCents = totalPriceCents;
+  record.status = "pix_pending";
+  return writeOrder(record);
+}
+
 export async function updateOrderStatus(
   id: string,
   status: OrderRecord["status"],

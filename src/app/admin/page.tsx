@@ -9,6 +9,7 @@ type OrderItem = {
   description: string;
   quantity: number;
   unitPriceCents: number | null;
+  referenceFiles: string[];
 };
 
 type ShippingAddress = {
@@ -76,6 +77,20 @@ function OrderCard({
               {formatPrice(item.unitPriceCents === null ? null : item.unitPriceCents * item.quantity)}
             </p>
             <p className="whitespace-pre-wrap">{item.description}</p>
+            {item.referenceFiles.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {item.referenceFiles.map((path, fi) => (
+                  <a key={fi} href={`/api/admin/files/${path}`} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/admin/files/${path}`}
+                      alt=""
+                      className="h-20 w-20 border border-border object-cover"
+                    />
+                  </a>
+                ))}
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -117,7 +132,80 @@ function OrderCard({
           </button>
         )}
       </div>
+      {order.status === "pending_quote" && <QuoteForm orderId={order.id} />}
     </li>
+  );
+}
+
+function QuoteForm({ orderId }: { orderId: string }) {
+  const [amount, setAmount] = useState("");
+  const [links, setLinks] = useState<{ pixUrl: string; checkoutUrl: string | null } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleGenerate() {
+    setError(null);
+    const amountReais = Number(amount.replace(",", "."));
+    if (!amountReais || amountReais <= 0) {
+      setError("Informe um valor válido.");
+      return;
+    }
+    setLoading(true);
+    const res = await fetch(`/api/admin/orders/${orderId}/quote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amountReais }),
+    });
+    setLoading(false);
+    if (!res.ok) {
+      setError("Não foi possível gerar a cobrança.");
+      return;
+    }
+    setLinks(await res.json());
+  }
+
+  return (
+    <div className="mt-3 border-t border-border pt-3">
+      {links ? (
+        <div className="space-y-1 text-xs">
+          <p className="text-foreground/70">Envie um desses links pro cliente:</p>
+          <p className="break-all">
+            Pix:{" "}
+            <a className="text-accent underline" href={links.pixUrl} target="_blank" rel="noreferrer">
+              {links.pixUrl}
+            </a>
+          </p>
+          {links.checkoutUrl && (
+            <p className="break-all">
+              Cartão:{" "}
+              <a className="text-accent underline" href={links.checkoutUrl} target="_blank" rel="noreferrer">
+                {links.checkoutUrl}
+              </a>
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder="Valor combinado (R$)"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="w-40 border border-border bg-background p-2 text-xs outline-none focus:border-accent"
+          />
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleGenerate}
+            className="bg-accent px-3 py-2 text-xs tracking-wide text-white uppercase hover:bg-accent-dark disabled:opacity-60"
+          >
+            {loading ? "Gerando..." : "Gerar cobrança"}
+          </button>
+        </div>
+      )}
+      {error && <p className="mt-1 text-xs text-accent">{error}</p>}
+    </div>
   );
 }
 
