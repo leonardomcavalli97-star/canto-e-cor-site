@@ -36,7 +36,7 @@ const EMPTY_ADDRESS: ShippingAddress = {
 export interface OrderRecord {
   id: string;
   createdAt: string;
-  status: "pending_payment" | "pending_quote" | "pix_pending" | "paid" | "cancelled";
+  status: "pending_payment" | "pending_quote" | "pix_pending" | "paid" | "shipped" | "cancelled";
   name: string;
   email: string;
   phone: string;

@@ -39,10 +39,19 @@ const STATUS_LABELS: Record<string, string> = {
   pending_payment: "Aguardando cartão",
   pending_quote: "Aguardando orçamento",
   paid: "Pago",
+  shipped: "Enviado",
   cancelled: "Cancelado",
 };
 
-function OrderCard({ order, onMarkPaid }: { order: Order; onMarkPaid: (id: string) => void }) {
+function OrderCard({
+  order,
+  onMarkPaid,
+  onMarkShipped,
+}: {
+  order: Order;
+  onMarkPaid: (id: string) => void;
+  onMarkShipped: (id: string) => void;
+}) {
   const totalQuantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
@@ -96,6 +105,15 @@ function OrderCard({ order, onMarkPaid }: { order: Order; onMarkPaid: (id: strin
             className="bg-accent px-4 py-2 text-xs tracking-wide text-white uppercase hover:bg-accent-dark"
           >
             Marcar como pago
+          </button>
+        )}
+        {order.status === "paid" && (
+          <button
+            type="button"
+            onClick={() => onMarkShipped(order.id)}
+            className="bg-accent px-4 py-2 text-xs tracking-wide text-white uppercase hover:bg-accent-dark"
+          >
+            Marcar como enviado
           </button>
         )}
       </div>
@@ -167,6 +185,11 @@ export default function AdminPage() {
     loadOrders();
   }
 
+  async function handleMarkShipped(id: string) {
+    await fetch(`/api/admin/orders/${id}/mark-shipped`, { method: "POST" });
+    loadOrders();
+  }
+
   if (authenticated === null) {
     return null;
   }
@@ -197,7 +220,11 @@ export default function AdminPage() {
   }
 
   const pending = orders.filter(
-    (o) => o.status === "pix_pending" || o.status === "pending_quote" || o.status === "pending_payment"
+    (o) =>
+      o.status === "pix_pending" ||
+      o.status === "pending_quote" ||
+      o.status === "pending_payment" ||
+      o.status === "paid"
   );
   const others = orders.filter((o) => !pending.includes(o));
 
@@ -216,7 +243,12 @@ export default function AdminPage() {
       ) : (
         <ul className="mt-3 space-y-3">
           {pending.map((order) => (
-            <OrderCard key={order.id} order={order} onMarkPaid={handleMarkPaid} />
+            <OrderCard
+              key={order.id}
+              order={order}
+              onMarkPaid={handleMarkPaid}
+              onMarkShipped={handleMarkShipped}
+            />
           ))}
         </ul>
       )}
@@ -226,7 +258,12 @@ export default function AdminPage() {
           <h2 className="mt-10 font-serif-display text-xl text-foreground">Histórico</h2>
           <ul className="mt-3 space-y-3">
             {others.map((order) => (
-              <OrderCard key={order.id} order={order} onMarkPaid={handleMarkPaid} />
+              <OrderCard
+              key={order.id}
+              order={order}
+              onMarkPaid={handleMarkPaid}
+              onMarkShipped={handleMarkShipped}
+            />
             ))}
           </ul>
         </>
