@@ -29,7 +29,7 @@ export default function GaleriaPage() {
 
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {PIECES.map((piece) => (
-          <ArtworkCard key={piece.src} src={piece.src} alt={piece.label} label={piece.label} />
+          <ArtworkCard key={piece.src} src={piece.src} alt={piece.label} />
         ))}
       </div>
 

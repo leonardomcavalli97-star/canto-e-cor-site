@@ -14,7 +14,7 @@ const PIECES = [
   { src: "/gallery/cachorro-anjo.webp", label: "Homenagem a um pet" },
 ];
 
-const INTERVAL_MS = 4000;
+const INTERVAL_MS = 3000;
 
 export default function PortfolioCarousel({ className = "" }: { className?: string }) {
   const [index, setIndex] = useState(0);
@@ -42,12 +42,9 @@ export default function PortfolioCarousel({ className = "" }: { className?: stri
         alt={current.label}
         fill
         sizes="(min-width: 768px) 50vw, 100vw"
-        className="object-contain p-3 opacity-0 [animation:fade-in_0.6s_ease-out_forwards]"
+        className="object-contain p-3 opacity-0 [animation:fade-in_0.5s_ease-out_forwards]"
       />
-      <span className="pointer-events-none absolute inset-x-0 bottom-4 text-center font-serif-display text-sm text-foreground/70">
-        {current.label}
-      </span>
-      <div className="absolute inset-x-0 bottom-10 flex justify-center gap-2">
+      <div className="absolute inset-x-0 bottom-4 flex justify-center gap-2">
         {PIECES.map((piece, i) => (
           <button
             key={piece.src}

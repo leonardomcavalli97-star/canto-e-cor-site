@@ -30,7 +30,7 @@ const TESTIMONIALS = [
   },
 ];
 
-const INTERVAL_MS = 6000;
+const INTERVAL_MS = 3000;
 
 export default function Testimonials() {
   const [index, setIndex] = useState(0);
@@ -55,13 +55,13 @@ export default function Testimonials() {
       <div className="mx-auto flex min-h-[20rem] max-w-3xl flex-col items-center justify-center px-6 py-20 text-center">
         <p
           key={index}
-          className="font-serif-display text-2xl leading-relaxed opacity-0 [animation:fade-in_0.6s_ease-out_forwards] md:text-3xl"
+          className="font-serif-display text-2xl leading-relaxed opacity-0 [animation:fade-in_0.5s_ease-out_forwards] md:text-3xl"
         >
           &ldquo;{current.quote}&rdquo;
         </p>
         <p
           key={`${index}-author`}
-          className="mt-6 text-xs tracking-[0.2em] uppercase opacity-0 [animation:fade-in_0.6s_ease-out_forwards]"
+          className="mt-6 text-xs tracking-[0.2em] uppercase opacity-0 [animation:fade-in_0.5s_ease-out_forwards]"
         >
           {current.author}
         </p>

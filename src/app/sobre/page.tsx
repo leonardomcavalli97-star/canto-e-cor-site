@@ -16,15 +16,18 @@ export default function SobrePage() {
           <p className="mb-3 text-xs tracking-[0.2em] text-accent uppercase">Sobre</p>
           <h1 className="font-serif-display text-4xl text-foreground">O Ateliê Canto e Cor</h1>
           <p className="mt-6 text-foreground/80">
-            O Canto e Cor nasceu da vontade de transformar fotos e memórias em peças
-            únicas, pintadas à mão em aquarela. Cada encomenda começa com a sua
-            história: um casal, um pet, um retrato querido ou uma homenagem a alguém
-            especial.
+            O Canto e Cor nasceu da vontade de transformar fotos e memórias em
+            aquarelas únicas, pintadas à mão e feitas especialmente para cada
+            história.
           </p>
           <p className="mt-4 text-foreground/80">
-            Trabalhamos com papéis de qualidade em dois tamanhos, A5 e A4, e cada peça é
-            pintada individualmente &mdash; sem réplicas, sem produção em série. O valor
-            pode variar conforme o tamanho do papel e a complexidade do desenho.
+            Pode ser um casal, um pet, uma viagem, um lugar especial ou qualquer outra
+            ideia que você queira transformar em arte.
+          </p>
+          <p className="mt-4 text-foreground/80">
+            As aquarelas podem ser feitas nos formatos A5, A4 ou em tamanho
+            personalizado. Cada peça é produzida individualmente e o valor varia
+            conforme o tamanho e a complexidade do desenho.
           </p>
           <div className="mt-8">
             <LinkButton href="/pedido">Fazer minha encomenda</LinkButton>

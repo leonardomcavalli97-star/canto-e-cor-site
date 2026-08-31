@@ -5,18 +5,18 @@ import Testimonials from "@/components/Testimonials";
 const STEPS = [
   {
     number: "01",
-    title: "Conte sua ideia",
-    text: "Escolha o tamanho e nos diga quem ou o que você quer eternizar: um casal, um pet, um retrato ou uma homenagem.",
+    title: "Sua ideia",
+    text: "Escolha o que você quer transformar em aquarela. Pode ser uma pessoa, um casal, um pet, uma viagem, uma casa, um lugar especial ou qualquer outra ideia que tenha significado para você.",
   },
   {
     number: "02",
-    title: "Envie a foto de referência",
-    text: "Suba a foto que vai inspirar a pintura direto pelo formulário de encomenda — sem trocas de e-mail.",
+    title: "Faça seu pedido",
+    text: "Personalize sua encomenda diretamente pelo site: escolha o tamanho, envie suas fotos de referência e informe os detalhes do desenho. Todo o pedido pode ser feito por aqui, de forma simples e rápida.",
   },
   {
     number: "03",
     title: "Receba sua aquarela",
-    text: "Pintamos à mão, com cuidado, e avisamos você a cada etapa até a peça chegar até você.",
+    text: "Sua aquarela é pintada à mão, preparada com todo cuidado e enviada para chegar até você pronta para guardar, presentear ou decorar.",
   },
 ];
 
