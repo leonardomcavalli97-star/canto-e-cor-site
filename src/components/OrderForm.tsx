@@ -746,13 +746,7 @@ export default function OrderForm() {
             </div>
             {cepError && <p className="mt-2 text-sm text-accent">{cepError}</p>}
             {addressError && <p className="mt-2 text-sm text-accent">{addressError}</p>}
-            <p className="mt-3 text-xs text-muted">
-              {!addressFilled
-                ? `Frete grátis para Campo Grande - MS. Fixo de ${formatPrice(SHIPPING_FLAT_CENTS)} para outras cidades.`
-                : isFreeShipping
-                  ? "Frete grátis para Campo Grande - MS."
-                  : `Frete fixo de ${formatPrice(SHIPPING_FLAT_CENTS)} para outras cidades.`}
-            </p>
+            <p className="mt-3 text-xs text-muted">Frete grátis para Campo Grande - MS.</p>
           </fieldset>
 
         </div>
