@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createOrder, type OrderItem, type OrderTheme, type ShippingAddress } from "@/lib/orders";
 import { PAPER_SIZES, SHIPPING_FLAT_CENTS, isFreeShippingAddress, type PaperSize } from "@/lib/pricing";
-import { createInfinitePayCheckout, type InfinitePayItem } from "@/lib/infinitepay";
 
 const MAX_FILES = 5;
 const MAX_ITEMS = 10;
@@ -12,7 +11,6 @@ export async function POST(req: NextRequest) {
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
-  const paymentMethod = String(formData.get("paymentMethod") ?? "card") === "pix" ? "pix" : "card";
 
   if (!name || !email || !phone) {
     return NextResponse.json(
@@ -125,50 +123,12 @@ export async function POST(req: NextRequest) {
     shippingAddress,
     shippingCents,
     totalPriceCents,
-    status:
-      totalPriceCents === null
-        ? "pending_quote"
-        : paymentMethod === "pix"
-          ? "pix_pending"
-          : "pending_payment",
+    status: totalPriceCents === null ? "pending_quote" : "pix_pending",
   });
 
   if (totalPriceCents === null) {
     return NextResponse.json({ orderId: order.id, quotePending: true });
   }
 
-  if (paymentMethod === "pix") {
-    return NextResponse.json({ orderId: order.id, pixPending: true });
-  }
-
-  const origin = req.nextUrl.origin;
-
-  try {
-    const infinitePayItems: InfinitePayItem[] = items.map((item, i) => ({
-      id: String(i),
-      description: `Aquarela ${PAPER_SIZES[item.paperSize].label} · ${item.description}`.slice(0, 100),
-      quantity: item.quantity,
-      price: item.unitPriceCents!,
-    }));
-    if (shippingCents > 0) {
-      infinitePayItems.push({ id: "frete", description: "Frete", quantity: 1, price: shippingCents });
-    }
-
-    const checkoutUrl = await createInfinitePayCheckout({
-      orderNsu: order.id,
-      amountCents: totalPriceCents,
-      items: infinitePayItems,
-      customer: { name, email, phone },
-      redirectUrl: `${origin}/pedido-confirmado?order_id=${order.id}`,
-      webhookUrl: `${origin}/api/webhook/infinitepay`,
-    });
-
-    return NextResponse.json({ checkoutUrl, orderId: order.id });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Erro ao iniciar pagamento.";
-    return NextResponse.json(
-      { error: message, orderId: order.id, savedWithoutPayment: true },
-      { status: 502 }
-    );
-  }
+  return NextResponse.json({ orderId: order.id, pixPending: true });
 }

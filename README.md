@@ -24,8 +24,7 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `/galeria` — trabalhos do ateliê (fotos reais em `public/gallery/`)
 - `/sobre` — sobre o ateliê + seção "Quem pinta" com a história da Lívia
 - `/pedido` — **formulário de encomenda** (tamanho, tema, foto de referência,
-  descrição, dados de contato) → cria a encomenda e redireciona para o Pix (QR Code
-  próprio) ou o checkout da InfinitePay, dependendo do que o cliente escolher
+  descrição, dados de contato) → cria a encomenda e mostra o Pix (QR Code próprio)
 - `/contato` — Instagram do ateliê
 - `src/lib/pricing.ts` — tamanhos e preços (A5 R$150 / A4 R$180). Mude aqui se os
   valores da tabela mudarem.
@@ -34,28 +33,14 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `public/brand/` — logo, selo, "Made with love.", assinatura e listrados em SVG
 - `public/gallery/` — fotos das peças (WebP otimizado)
 
-## Pagamento
+## Pagamento (Pix)
 
-**Pix**: código estático gerado na hora (via `pix-utils`, com a chave Pix do ateliê
-configurada em `src/lib/pix.ts`) — não depende de nenhuma conta/API externa.
+Único meio de pagamento do site. Código estático gerado na hora (via `pix-utils`),
+com a chave Pix do ateliê configurada em `src/lib/pix.ts` (hoje: chave celular da
+Lívia) — não depende de nenhuma conta/API externa.
 
-**Cartão**: usa o **Checkout Integrado da InfinitePay** (redirecionamento hospedado
-pela InfinitePay) — o site nunca lida diretamente com dados de cartão.
-
-1. Crie uma conta em [infinitepay.io](https://www.infinitepay.io/) (isso você precisa
-   fazer você mesma/o — eu não posso criar contas em seu nome) e pegue seu handle (@tag).
-2. Copie `.env.example` para `.env.local` e preencha:
-   ```
-   INFINITEPAY_HANDLE=seu-handle
-   INFINITEPAY_API_KEY=
-   ```
-3. A confirmação de pagamento chega por dois caminhos, por segurança: o webhook
-   (`/api/webhook/infinitepay`, informado automaticamente a cada cobrança criada) e uma
-   verificação ativa quando o cliente retorna pra página de confirmação.
-
-Sem o handle configurado, o formulário de `/pedido` continua salvando a encomenda e as
-fotos normalmente, só não consegue gerar o link de pagamento por cartão (mostra um
-aviso amigável). O Pix funciona independente disso.
+Pra trocar a chave Pix no futuro, edite `PIX_KEY`, `PIX_MERCHANT_NAME` e
+`PIX_MERCHANT_CITY` em `src/lib/pix.ts`.
 
 ## Onde ficam os pedidos
 
@@ -68,6 +53,5 @@ saber quando chega um pedido novo.
 
 ## Próximos passos sugeridos
 
-- Configurar a InfinitePay em produção (handle real, sem chaves de teste)
 - Se quiser trocar "The Seasons"/Cormorant Garamond por outra fonte licenciada no
   futuro, é só trocar o import em `src/app/layout.tsx`

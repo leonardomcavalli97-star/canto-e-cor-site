@@ -109,7 +109,6 @@ function orderSummary(order: Order) {
 }
 
 function paymentMethodLabel(order: Order) {
-  if (order.paymentReference) return "Cartão";
   if (order.status === "pix_pending" || order.status === "paid" || order.status === "shipped") return "Pix";
   return "A definir";
 }
@@ -295,7 +294,7 @@ function ActionsMenu({
 
 function QuoteForm({ orderId }: { orderId: string }) {
   const [amount, setAmount] = useState("");
-  const [links, setLinks] = useState<{ pixUrl: string; checkoutUrl: string | null } | null>(null);
+  const [links, setLinks] = useState<{ pixUrl: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -332,14 +331,6 @@ function QuoteForm({ orderId }: { orderId: string }) {
               {links.pixUrl}
             </a>
           </p>
-          {links.checkoutUrl && (
-            <p className="break-all">
-              Cartão:{" "}
-              <a className="text-accent underline" href={links.checkoutUrl} target="_blank" rel="noreferrer">
-                {links.checkoutUrl}
-              </a>
-            </p>
-          )}
         </div>
       ) : (
         <div className="mt-2 flex items-center gap-2">

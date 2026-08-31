@@ -1,9 +1,7 @@
 import { createStaticPix } from "pix-utils";
 
-// Dados temporários (chave Pix do Leonardo) — trocar pela chave e pelo nome
-// da Lívia assim que ela definir qual chave Pix o ateliê vai usar.
-const PIX_KEY = "47266960843";
-const PIX_MERCHANT_NAME = "LEONARDO M CAVALLI";
+const PIX_KEY = "+5567998891606";
+const PIX_MERCHANT_NAME = "LIVIA DAVILA LOPES";
 const PIX_MERCHANT_CITY = "CAMPO GRANDE MS";
 
 export async function buildPix({

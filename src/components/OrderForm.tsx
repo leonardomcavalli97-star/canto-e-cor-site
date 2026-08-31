@@ -13,7 +13,6 @@ import {
 } from "@/lib/pricing";
 import { Button } from "@/components/Button";
 import {
-  CreditCard,
   Image as ImageIcon,
   Lock,
   Mail,
@@ -82,7 +81,6 @@ export default function OrderForm() {
   const [cepError, setCepError] = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
 
-  const [readyToChoosePayment, setReadyToChoosePayment] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploadStage, setUploadStage] = useState<string | null>(null);
@@ -228,7 +226,7 @@ export default function OrderForm() {
     return cartItems;
   }
 
-  async function submitOrder(finalItems: CartItem[], method: "pix" | "card") {
+  async function submitOrder(finalItems: CartItem[]) {
     if (!formRef.current) return;
     setSubmitError(null);
     setSubmitting(true);
@@ -259,7 +257,6 @@ export default function OrderForm() {
     setUploadStage(null);
 
     const formData = new FormData(formRef.current);
-    formData.set("paymentMethod", method);
     formData.set("itemCount", String(finalItems.length));
     formData.set("cep", cep);
     formData.set("street", street);
@@ -283,11 +280,6 @@ export default function OrderForm() {
       if (!res.ok) {
         setSubmitError(data.error ?? "Não foi possível enviar sua encomenda. Tente novamente.");
         setSubmitting(false);
-        return;
-      }
-
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
         return;
       }
 
@@ -323,27 +315,7 @@ export default function OrderForm() {
     }
     setAddressError(null);
 
-    const hasCustom = finalItems.some((item) => itemUnitPrice(item) === null);
-    if (hasCustom) {
-      submitOrder(finalItems, "card");
-    } else {
-      setReadyToChoosePayment(true);
-    }
-  }
-
-  function handleChoosePayment(method: "pix" | "card") {
-    const finalItems = computeFinalItems();
-    if (!finalItems) {
-      setReadyToChoosePayment(false);
-      return;
-    }
-    const addressErr = validateAddress();
-    if (addressErr) {
-      setAddressError(addressErr);
-      setReadyToChoosePayment(false);
-      return;
-    }
-    submitOrder(finalItems, method);
+    submitOrder(finalItems);
   }
 
   const currentUnitPrice = PAPER_SIZES[paperSize].priceCents;
@@ -359,7 +331,8 @@ export default function OrderForm() {
     return unit === null ? sum : sum + unit * item.quantity;
   }, 0);
   const currentSubtotal = willIncludeCurrent && currentUnitPrice !== null ? currentUnitPrice * quantity : 0;
-  const isFreeShipping = isFreeShippingAddress(city, state);
+  const addressFilled = city.trim().length > 0 && state.trim().length > 0;
+  const isFreeShipping = !addressFilled || isFreeShippingAddress(city, state);
   const shippingCents = isFreeShipping ? 0 : SHIPPING_FLAT_CENTS;
   const grandTotal = overallHasCustom ? null : cartSubtotal + currentSubtotal + shippingCents;
 
@@ -774,9 +747,11 @@ export default function OrderForm() {
             {cepError && <p className="mt-2 text-sm text-accent">{cepError}</p>}
             {addressError && <p className="mt-2 text-sm text-accent">{addressError}</p>}
             <p className="mt-3 text-xs text-muted">
-              {isFreeShipping
-                ? "Frete grátis para Campo Grande - MS."
-                : `Frete fixo de ${formatPrice(SHIPPING_FLAT_CENTS)} para outras cidades.`}
+              {!addressFilled
+                ? `Frete grátis para Campo Grande - MS. Fixo de ${formatPrice(SHIPPING_FLAT_CENTS)} para outras cidades.`
+                : isFreeShipping
+                  ? "Frete grátis para Campo Grande - MS."
+                  : `Frete fixo de ${formatPrice(SHIPPING_FLAT_CENTS)} para outras cidades.`}
             </p>
           </fieldset>
 
@@ -853,7 +828,7 @@ export default function OrderForm() {
             <div className="mt-6 border-t border-border pt-4">
               {!overallHasCustom && (
                 <div className="flex items-baseline justify-between text-sm text-foreground/70">
-                  <span>Frete{isFreeShipping ? " · Campo Grande, MS" : ""}</span>
+                  <span>Frete{addressFilled && isFreeShipping ? " · Campo Grande, MS" : ""}</span>
                   <span className={isFreeShipping ? "text-accent" : ""}>
                     {isFreeShipping ? "Grátis" : formatPrice(SHIPPING_FLAT_CENTS)}
                   </span>
@@ -872,41 +847,17 @@ export default function OrderForm() {
 
             {submitError && <p className="mt-4 text-xs text-accent">{submitError}</p>}
 
-            {!overallHasCustom && readyToChoosePayment ? (
-              <div className="mt-4 space-y-2">
-                <button
-                  type="button"
-                  onClick={() => setReadyToChoosePayment(false)}
-                  className="text-xs text-muted underline"
-                >
-                  ‹ Voltar
-                </button>
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={() => handleChoosePayment("pix")}
-                  className="flex w-full items-center justify-center gap-2 border-2 border-accent bg-accent px-6 py-4 text-base font-medium text-white transition-colors hover:bg-accent-dark disabled:opacity-60"
-                >
-                  <QrCode size={20} /> {submitting ? (uploadStage ?? "Enviando...") : "Pagar com Pix"}
-                </button>
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={() => handleChoosePayment("card")}
-                  className="flex w-full items-center justify-center gap-2 border-2 border-accent px-6 py-4 text-base font-medium text-accent transition-colors hover:bg-accent hover:text-white disabled:opacity-60"
-                >
-                  <CreditCard size={20} /> {submitting ? (uploadStage ?? "Enviando...") : "Pagar com cartão"}
-                </button>
-              </div>
-            ) : (
-              <Button type="submit" disabled={submitting} className="mt-4 w-full">
-                {submitting
-                  ? (uploadStage ?? "Enviando...")
-                  : overallHasCustom
-                    ? "Enviar pedido de orçamento"
-                    : "Ir para pagamento"}
-              </Button>
-            )}
+            <Button type="submit" disabled={submitting} className="mt-4 w-full">
+              {submitting ? (
+                (uploadStage ?? "Enviando...")
+              ) : overallHasCustom ? (
+                "Enviar pedido de orçamento"
+              ) : (
+                <>
+                  <QrCode size={18} /> Pagar com Pix
+                </>
+              )}
+            </Button>
 
             <ul className="mt-6 space-y-2 border-t border-border pt-4 text-xs text-foreground/70">
               <li className="flex items-center gap-2">
@@ -914,7 +865,7 @@ export default function OrderForm() {
               </li>
               <li className="flex items-center gap-2">
                 <Lock size={14} className="shrink-0 text-accent" />
-                {overallHasCustom ? "Orçamento sem compromisso" : "Pague com Pix ou cartão"}
+                {overallHasCustom ? "Orçamento sem compromisso" : "Pague com Pix"}
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={14} className="shrink-0 text-accent" /> Você acompanha cada etapa por e-mail
@@ -925,49 +876,23 @@ export default function OrderForm() {
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-6 py-4 backdrop-blur lg:hidden">
-        {!overallHasCustom && readyToChoosePayment ? (
-          <div className="mx-auto max-w-3xl space-y-2">
-            <button
-              type="button"
-              onClick={() => setReadyToChoosePayment(false)}
-              className="text-xs text-muted underline"
-            >
-              ‹ Voltar
-            </button>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleChoosePayment("pix")}
-                className="flex flex-1 items-center justify-center gap-2 border-2 border-accent bg-accent px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
-              >
-                <QrCode size={16} /> Pix
-              </button>
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleChoosePayment("card")}
-                className="flex flex-1 items-center justify-center gap-2 border-2 border-accent px-4 py-3 text-sm font-medium text-accent disabled:opacity-60"
-              >
-                <CreditCard size={16} /> Cartão
-              </button>
-            </div>
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] text-muted">{overallHasCustom ? "Valor" : "Total"}</p>
+            <p className="font-serif-display text-lg text-accent">{formatPrice(grandTotal)}</p>
           </div>
-        ) : (
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-            <div>
-              <p className="text-[11px] text-muted">{overallHasCustom ? "Valor" : "Total"}</p>
-              <p className="font-serif-display text-lg text-accent">{formatPrice(grandTotal)}</p>
-            </div>
-            <Button type="submit" disabled={submitting} className="flex-1 max-w-[220px]">
-              {submitting
-                ? (uploadStage ?? "Enviando...")
-                : overallHasCustom
-                  ? "Enviar orçamento"
-                  : "Ir para pagamento"}
-            </Button>
-          </div>
-        )}
+          <Button type="submit" disabled={submitting} className="flex-1 max-w-[220px]">
+            {submitting ? (
+              (uploadStage ?? "Enviando...")
+            ) : overallHasCustom ? (
+              "Enviar orçamento"
+            ) : (
+              <>
+                <QrCode size={16} /> Pagar com Pix
+              </>
+            )}
+          </Button>
+        </div>
         {submitError && (
           <p className="mx-auto mt-2 max-w-3xl text-xs text-accent">{submitError}</p>
         )}

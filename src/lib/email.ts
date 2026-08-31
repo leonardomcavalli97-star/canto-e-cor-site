@@ -13,8 +13,7 @@ export async function sendQuoteReadyEmail(
   to: string,
   name: string,
   amountCents: number,
-  pixUrl: string,
-  checkoutUrl: string | null
+  pixUrl: string
 ) {
   const resend = getResend();
   if (!resend) return;
@@ -29,10 +28,9 @@ export async function sendQuoteReadyEmail(
         <h1 style="font-size: 24px; margin: 8px 0 16px;">Seu orçamento está pronto!</h1>
         <p>Olá, ${name}!</p>
         <p>O valor combinado para o seu pedido personalizado é <strong>${formatBRL(amountCents)}</strong>.</p>
-        <p>Escolha como prefere pagar:</p>
+        <p>Pague com Pix pelo link abaixo:</p>
         <p>
           <a href="${pixUrl}" style="color: #a15c5c;">Pagar com Pix</a>
-          ${checkoutUrl ? `<br /><a href="${checkoutUrl}" style="color: #a15c5c;">Pagar com cartão</a>` : ""}
         </p>
         <p>Assim que o pagamento for confirmado, começamos a pintar!</p>
         <p style="margin-top: 24px;">Com carinho,<br />Canto e Cor</p>

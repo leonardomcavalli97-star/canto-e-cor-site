@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE_NAME, isValidSession } from "@/lib/adminAuth";
 import { getOrder, setOrderQuote } from "@/lib/orders";
-import { createInfinitePayCheckout } from "@/lib/infinitepay";
 import { sendQuoteReadyEmail } from "@/lib/email";
 
 export async function POST(
@@ -34,21 +33,7 @@ export async function POST(
   const origin = req.nextUrl.origin;
   const pixUrl = `${origin}/pedido-pix?order_id=${id}`;
 
-  let checkoutUrl: string | null = null;
-  try {
-    checkoutUrl = await createInfinitePayCheckout({
-      orderNsu: id,
-      amountCents,
-      items: [{ id: "personalizado", description: "Aquarela personalizada · Canto e Cor", quantity: 1, price: amountCents }],
-      customer: { name: order.name, email: order.email, phone: order.phone },
-      redirectUrl: `${origin}/pedido-confirmado?order_id=${id}`,
-      webhookUrl: `${origin}/api/webhook/infinitepay`,
-    });
-  } catch {
-    checkoutUrl = null;
-  }
+  await sendQuoteReadyEmail(order.email, order.name, amountCents, pixUrl);
 
-  await sendQuoteReadyEmail(order.email, order.name, amountCents, pixUrl, checkoutUrl);
-
-  return NextResponse.json({ pixUrl, checkoutUrl });
+  return NextResponse.json({ pixUrl });
 }
