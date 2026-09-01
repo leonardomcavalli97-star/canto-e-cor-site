@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { put, get, list } from "@vercel/blob";
+import { put, get, list, del } from "@vercel/blob";
 import type { PaperSize } from "./pricing";
 
 export type OrderTheme = "casal" | "pet" | "retrato" | "santo" | "homenagem" | "outro";
@@ -45,6 +45,7 @@ export interface OrderRecord {
   shippingCents: number;
   totalPriceCents: number | null;
   paymentReference?: string;
+  paidAt?: string;
 }
 
 // Pedidos criados antes da mudança para múltiplos desenhos guardavam os
@@ -147,7 +148,20 @@ export async function updateOrderStatus(
   const record = normalizeOrder(raw);
   record.status = status;
   if (paymentReference) record.paymentReference = paymentReference;
+  if (status === "paid" && !record.paidAt) record.paidAt = new Date().toISOString();
   return writeOrder(record);
+}
+
+export async function deleteOrder(id: string) {
+  const raw = await readOrderJson(orderPathname(id));
+  if (raw) {
+    const record = normalizeOrder(raw);
+    const filePaths = record.items.flatMap((item) => item.referenceFiles);
+    if (filePaths.length > 0) {
+      await del(filePaths).catch(() => {});
+    }
+  }
+  await del(orderPathname(id));
 }
 
 export async function getOrder(id: string): Promise<OrderRecord | null> {

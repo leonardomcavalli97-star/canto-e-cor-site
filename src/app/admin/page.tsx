@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Ban,
+  BarChart3,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   ImageIcon,
   Mail,
@@ -11,6 +14,7 @@ import {
   MoreHorizontal,
   Phone,
   Search,
+  Trash2,
   Truck,
   X,
 } from "lucide-react";
@@ -47,6 +51,7 @@ type Order = {
   status: string;
   createdAt: string;
   paymentReference?: string;
+  paidAt?: string;
 };
 
 type Tone = "waiting" | "attention" | "progress" | "done" | "cancelled";
@@ -180,12 +185,14 @@ function ActionsMenu({
   onMarkPaid,
   onMarkShipped,
   onCancel,
+  onDelete,
   onOpenDetails,
 }: {
   order: Order;
   onMarkPaid: (id: string) => void;
   onMarkShipped: (id: string) => void;
   onCancel: (id: string) => void;
+  onDelete: (id: string) => void;
   onOpenDetails: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -274,17 +281,22 @@ function ActionsMenu({
               </button>
             )}
             {order.status !== "cancelled" && order.status !== "shipped" && (
-              <>
-                <div className="my-1 border-t border-border" />
-                <button
-                  type="button"
-                  onClick={() => act(() => onCancel(order.id))}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-muted hover:bg-background"
-                >
-                  <Ban size={14} /> Cancelar pedido
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => act(() => onCancel(order.id))}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-muted hover:bg-background"
+              >
+                <Ban size={14} /> Cancelar pedido
+              </button>
             )}
+            <div className="my-1 border-t border-border" />
+            <button
+              type="button"
+              onClick={() => act(() => onDelete(order.id))}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-accent hover:bg-accent/5"
+            >
+              <Trash2 size={14} /> Excluir pedido
+            </button>
           </div>
         </>
       )}
@@ -364,6 +376,7 @@ function OrderDetailPanel({
   onMarkPaid,
   onMarkShipped,
   onCancel,
+  onDelete,
 }: {
   order: Order;
   onClose: () => void;
@@ -371,6 +384,7 @@ function OrderDetailPanel({
   onMarkPaid: (id: string) => void;
   onMarkShipped: (id: string) => void;
   onCancel: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
   const hasAddress = !!order.shippingAddress?.cep;
@@ -534,6 +548,13 @@ function OrderDetailPanel({
               <Ban size={14} /> Cancelar pedido
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => onDelete(order.id)}
+            className="flex items-center gap-2 border border-accent/40 px-4 py-2 text-xs tracking-wide text-accent uppercase hover:bg-accent hover:text-white"
+          >
+            <Trash2 size={14} /> Excluir pedido
+          </button>
         </div>
       </div>
     </div>
@@ -547,9 +568,10 @@ type RowProps = {
   onMarkPaid: (id: string) => void;
   onMarkShipped: (id: string) => void;
   onCancel: (id: string) => void;
+  onDelete: (id: string) => void;
 };
 
-function DesktopOrderRow({ order, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel }: RowProps) {
+function DesktopOrderRow({ order, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel, onDelete }: RowProps) {
   const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
 
   return (
@@ -594,6 +616,7 @@ function DesktopOrderRow({ order, onOpenDetails, onOpenImage, onMarkPaid, onMark
             onMarkPaid={onMarkPaid}
             onMarkShipped={onMarkShipped}
             onCancel={onCancel}
+            onDelete={onDelete}
             onOpenDetails={onOpenDetails}
           />
         </div>
@@ -602,7 +625,7 @@ function DesktopOrderRow({ order, onOpenDetails, onOpenImage, onMarkPaid, onMark
   );
 }
 
-function MobileOrderCard({ order, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel }: RowProps) {
+function MobileOrderCard({ order, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel, onDelete }: RowProps) {
   const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
 
   return (
@@ -621,6 +644,7 @@ function MobileOrderCard({ order, onOpenDetails, onOpenImage, onMarkPaid, onMark
             onMarkPaid={onMarkPaid}
             onMarkShipped={onMarkShipped}
             onCancel={onCancel}
+            onDelete={onDelete}
             onOpenDetails={onOpenDetails}
           />
         </div>
@@ -674,11 +698,185 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
   );
 }
 
+function monthKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabel(key: string) {
+  const [y, m] = key.split("-").map(Number);
+  const label = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function shiftMonth(key: string, delta: number) {
+  const [y, m] = key.split("-").map(Number);
+  return monthKey(new Date(y, m - 1 + delta, 1));
+}
+
+function MonthlyReport({ orders }: { orders: Order[] }) {
+  const [month, setMonth] = useState(() => monthKey(new Date()));
+
+  const monthOrders = useMemo(
+    () => orders.filter((o) => monthKey(new Date(o.paidAt ?? o.createdAt)) === month),
+    [orders, month]
+  );
+
+  const paidOrders = monthOrders.filter((o) => o.status === "paid" || o.status === "shipped");
+  const cancelledOrders = monthOrders.filter((o) => o.status === "cancelled");
+  const openOrders = monthOrders.filter(
+    (o) => o.status === "pending_quote" || o.status === "pending_payment" || o.status === "pix_pending"
+  );
+
+  const revenueCents = paidOrders.reduce((sum, o) => sum + (o.totalPriceCents ?? 0), 0);
+  const piecesSold = paidOrders.reduce(
+    (sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0),
+    0
+  );
+  const avgTicketCents = paidOrders.length > 0 ? Math.round(revenueCents / paidOrders.length) : 0;
+
+  const byTheme = new Map<string, { count: number; revenueCents: number }>();
+  const bySize = new Map<string, { count: number; revenueCents: number }>();
+  for (const order of paidOrders) {
+    for (const item of order.items) {
+      const themeEntry = byTheme.get(item.theme) ?? { count: 0, revenueCents: 0 };
+      themeEntry.count += item.quantity;
+      themeEntry.revenueCents += (item.unitPriceCents ?? 0) * item.quantity;
+      byTheme.set(item.theme, themeEntry);
+
+      const sizeEntry = bySize.get(item.paperSize) ?? { count: 0, revenueCents: 0 };
+      sizeEntry.count += item.quantity;
+      sizeEntry.revenueCents += (item.unitPriceCents ?? 0) * item.quantity;
+      bySize.set(item.paperSize, sizeEntry);
+    }
+  }
+
+  const themeRows = Array.from(byTheme.entries()).sort((a, b) => b[1].count - a[1].count);
+  const sizeRows = Array.from(bySize.entries()).sort((a, b) => b[1].count - a[1].count);
+  const maxThemeCount = Math.max(1, ...themeRows.map(([, v]) => v.count));
+  const maxSizeCount = Math.max(1, ...sizeRows.map(([, v]) => v.count));
+
+  return (
+    <div className="mt-8">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setMonth((m) => shiftMonth(m, -1))}
+          aria-label="Mês anterior"
+          className="flex h-8 w-8 items-center justify-center border border-border hover:border-accent"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <p className="w-48 text-center font-serif-display text-xl text-foreground">
+          {monthLabel(month)}
+        </p>
+        <button
+          type="button"
+          onClick={() => setMonth((m) => shiftMonth(m, 1))}
+          aria-label="Próximo mês"
+          className="flex h-8 w-8 items-center justify-center border border-border hover:border-accent"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="border border-border bg-surface p-4">
+          <p className="font-serif-display text-2xl text-accent">{formatPrice(revenueCents)}</p>
+          <p className="mt-1 text-xs text-muted">Faturamento do mês</p>
+        </div>
+        <div className="border border-border bg-surface p-4">
+          <p className="font-serif-display text-2xl text-foreground">{paidOrders.length}</p>
+          <p className="mt-1 text-xs text-muted">Pedidos pagos</p>
+        </div>
+        <div className="border border-border bg-surface p-4">
+          <p className="font-serif-display text-2xl text-foreground">{piecesSold}</p>
+          <p className="mt-1 text-xs text-muted">Peças vendidas</p>
+        </div>
+        <div className="border border-border bg-surface p-4">
+          <p className="font-serif-display text-2xl text-foreground">{formatPrice(avgTicketCents)}</p>
+          <p className="mt-1 text-xs text-muted">Ticket médio</p>
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-2">
+        <div>
+          <h3 className="font-serif-display text-lg text-foreground">Temas mais pedidos</h3>
+          {themeRows.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">Nenhum pedido pago neste mês.</p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {themeRows.map(([theme, v]) => (
+                <li key={theme}>
+                  <div className="flex items-baseline justify-between text-sm">
+                    <span className="text-foreground">{THEME_LABELS[theme] ?? theme}</span>
+                    <span className="text-muted">
+                      {v.count} · {formatPrice(v.revenueCents)}
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full bg-border">
+                    <div
+                      className="h-full bg-accent"
+                      style={{ width: `${(v.count / maxThemeCount) * 100}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <h3 className="font-serif-display text-lg text-foreground">Tamanhos mais pedidos</h3>
+          {sizeRows.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">Nenhum pedido pago neste mês.</p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {sizeRows.map(([size, v]) => (
+                <li key={size}>
+                  <div className="flex items-baseline justify-between text-sm">
+                    <span className="text-foreground">
+                      {PAPER_SIZES[size as keyof typeof PAPER_SIZES]?.label ?? size}
+                    </span>
+                    <span className="text-muted">
+                      {v.count} · {formatPrice(v.revenueCents)}
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full bg-border">
+                    <div
+                      className="h-full bg-accent-navy"
+                      style={{ width: `${(v.count / maxSizeCount) * 100}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-8 grid grid-cols-3 gap-3">
+        <div className="border border-border bg-surface p-4">
+          <p className="font-serif-display text-xl text-foreground">{openOrders.length}</p>
+          <p className="mt-1 text-xs text-muted">Em aberto</p>
+        </div>
+        <div className="border border-border bg-surface p-4">
+          <p className="font-serif-display text-xl text-foreground">{cancelledOrders.length}</p>
+          <p className="mt-1 text-xs text-muted">Cancelados</p>
+        </div>
+        <div className="border border-border bg-surface p-4">
+          <p className="font-serif-display text-xl text-foreground">{monthOrders.length}</p>
+          <p className="mt-1 text-xs text-muted">Total no mês</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [view, setView] = useState<"orders" | "report">("orders");
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -758,6 +956,13 @@ export default function AdminPage() {
   async function handleCancel(id: string) {
     if (!window.confirm("Cancelar este pedido?")) return;
     await fetch(`/api/admin/orders/${id}/cancel`, { method: "POST" });
+    setSelectedId((current) => (current === id ? null : current));
+    loadOrders();
+  }
+
+  async function handleDelete(id: string) {
+    if (!window.confirm("Excluir este pedido definitivamente? Essa ação não pode ser desfeita.")) return;
+    await fetch(`/api/admin/orders/${id}`, { method: "DELETE" });
     setSelectedId((current) => (current === id ? null : current));
     loadOrders();
   }
@@ -851,11 +1056,24 @@ export default function AdminPage() {
             Gerencie pedidos, pagamentos, produção e entregas.
           </p>
         </div>
-        <button type="button" onClick={handleLogout} className="text-xs text-foreground/60 underline">
-          Sair
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setView(view === "orders" ? "report" : "orders")}
+            className="flex items-center gap-1.5 border border-accent px-3 py-1.5 text-xs tracking-wide text-accent uppercase hover:bg-accent hover:text-white"
+          >
+            <BarChart3 size={14} /> {view === "orders" ? "Relatório mensal" : "Ver pedidos"}
+          </button>
+          <button type="button" onClick={handleLogout} className="text-xs text-foreground/60 underline">
+            Sair
+          </button>
+        </div>
       </div>
 
+      {view === "report" ? (
+        <MonthlyReport orders={orders} />
+      ) : (
+        <>
       <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {SUMMARY_BUCKETS.map((bucket) => {
           const count = orders.filter((o) => bucket.match(o.status)).length;
@@ -972,6 +1190,7 @@ export default function AdminPage() {
                     onMarkPaid={handleMarkPaid}
                     onMarkShipped={handleMarkShipped}
                     onCancel={handleCancel}
+                    onDelete={handleDelete}
                   />
                 ))}
               </tbody>
@@ -987,12 +1206,15 @@ export default function AdminPage() {
                   onMarkPaid={handleMarkPaid}
                   onMarkShipped={handleMarkShipped}
                   onCancel={handleCancel}
+                  onDelete={handleDelete}
                 />
               ))}
             </ul>
           </>
         )}
       </div>
+        </>
+      )}
 
       {selectedOrder && (
         <OrderDetailPanel
@@ -1002,6 +1224,7 @@ export default function AdminPage() {
           onMarkPaid={handleMarkPaid}
           onMarkShipped={handleMarkShipped}
           onCancel={handleCancel}
+          onDelete={handleDelete}
         />
       )}
 
