@@ -116,8 +116,9 @@ export default function PixCheckout({ orderId }: { orderId: string }) {
       </div>
 
       <p className="mt-6 text-sm text-foreground/70">
-        Assim que confirmarmos o recebimento, essa página atualiza sozinha — não
-        precisa recarregar.
+        Depois de pagar, pode fechar esta página. A confirmação é feita manualmente
+        e pode levar até 24 horas — assim que confirmarmos, você recebe um e-mail
+        avisando. Se ela estiver aberta quando confirmarmos, atualiza sozinha.
       </p>
     </div>
   );

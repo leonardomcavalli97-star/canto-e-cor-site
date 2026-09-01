@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createOrder, type OrderItem, type OrderTheme, type ShippingAddress } from "@/lib/orders";
 import { PAPER_SIZES, SHIPPING_FLAT_CENTS, isFreeShippingAddress, type PaperSize } from "@/lib/pricing";
+import { sendNewOrderNotificationEmail } from "@/lib/email";
 
 const MAX_FILES = 5;
 const MAX_ITEMS = 10;
@@ -125,6 +126,8 @@ export async function POST(req: NextRequest) {
     totalPriceCents,
     status: totalPriceCents === null ? "pending_quote" : "pix_pending",
   });
+
+  await sendNewOrderNotificationEmail(name);
 
   if (totalPriceCents === null) {
     return NextResponse.json({ orderId: order.id, quotePending: true });

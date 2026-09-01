@@ -21,6 +21,10 @@ export default async function PedidoPixPage({
       <p className="mt-4 text-foreground/80">
         Sua encomenda já foi registrada. Pague o valor exato abaixo para confirmarmos.
       </p>
+      <p className="mt-2 text-sm text-foreground/60">
+        A confirmação é feita manualmente e pode levar até 24 horas — você não
+        precisa esperar nesta página. Assim que confirmarmos, avisamos por e-mail.
+      </p>
 
       {orderId ? (
         <PixCheckout orderId={orderId} />
