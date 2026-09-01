@@ -61,11 +61,11 @@ const STATUS_META: Record<string, { order: string; payment: string; tone: Tone }
 };
 
 const TONE_CLASSES: Record<Tone, string> = {
-  waiting: "bg-muted/10 text-muted",
-  attention: "bg-accent/10 text-accent",
-  progress: "bg-accent-dark/10 text-accent-dark",
-  done: "bg-accent-navy/10 text-accent-navy",
-  cancelled: "bg-border/60 text-muted",
+  waiting: "bg-amber-500/15 text-amber-800",
+  attention: "bg-accent/15 text-accent",
+  progress: "bg-emerald-600/15 text-emerald-800",
+  done: "bg-accent-navy/15 text-accent-navy",
+  cancelled: "bg-border text-muted/70",
 };
 
 const SUMMARY_BUCKETS: { key: string; label: string; match: (s: string) => boolean }[] = [
@@ -128,7 +128,7 @@ function StatusBadge({ label, tone }: { label: string; tone: Tone }) {
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium tracking-wide whitespace-nowrap ${TONE_CLASSES[tone]}`}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {label}
+      <span className={tone === "cancelled" ? "line-through decoration-muted/50" : ""}>{label}</span>
     </span>
   );
 }
