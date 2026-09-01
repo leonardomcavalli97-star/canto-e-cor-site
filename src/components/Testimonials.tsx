@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Pause, Play } from "lucide-react";
 
 const TESTIMONIALS = [
   {
@@ -49,7 +48,17 @@ export default function Testimonials() {
 
   return (
     <section className="bg-accent text-white">
-      <div className="mx-auto flex min-h-[20rem] max-w-3xl flex-col items-center justify-center px-6 py-20 text-center">
+      <div
+        onClick={() => setPaused((p) => !p)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") setPaused((p) => !p);
+        }}
+        aria-label={paused ? "Continuar depoimentos" : "Pausar depoimentos"}
+        aria-pressed={paused}
+        className="mx-auto flex min-h-[20rem] max-w-3xl cursor-pointer flex-col items-center justify-center px-6 py-20 text-center"
+      >
         <p
           key={index}
           className="font-serif-display text-2xl leading-relaxed opacity-0 [animation:fade-in_0.5s_ease-out_forwards] md:text-3xl"
@@ -63,28 +72,21 @@ export default function Testimonials() {
           {current.author}
         </p>
 
-        <div className="mt-10 flex items-center gap-4">
-          <div className="flex gap-2">
-            {TESTIMONIALS.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`Ver depoimento ${i + 1}`}
-                onClick={() => setIndex(i)}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === index ? "w-6 bg-white" : "w-1.5 bg-white/40"
-                }`}
-              />
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setPaused((p) => !p)}
-            aria-label={paused ? "Continuar depoimentos" : "Pausar depoimentos"}
-            className="flex h-6 w-6 items-center justify-center text-white/70 hover:text-white"
-          >
-            {paused ? <Play size={14} /> : <Pause size={14} />}
-          </button>
+        <div className="mt-10 flex gap-2">
+          {TESTIMONIALS.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={`Ver depoimento ${i + 1}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIndex(i);
+              }}
+              className={`h-1.5 rounded-full transition-all ${
+                i === index ? "w-6 bg-white" : "w-1.5 bg-white/40"
+              }`}
+            />
+          ))}
         </div>
       </div>
 
