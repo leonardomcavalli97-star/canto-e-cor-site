@@ -6,7 +6,7 @@ const TESTIMONIALS = [
   {
     quote:
       "Verdadeira obra de arte, criada com tanta delicadeza e riqueza de detalhes. Cada traço revela o carinho, a dedicação e o talento impecável do trabalho da Canto e Cor. Simplesmente encantada e imensamente grata por receber uma peça tão linda e feita com tanta perfeição!",
-    author: "Antonia, cliente Canto e Cor",
+    author: "Cliente Canto e Cor",
   },
   {
     quote: "Simplesmente perfeito!",
