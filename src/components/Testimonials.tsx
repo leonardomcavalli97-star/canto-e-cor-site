@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Pause, Play } from "lucide-react";
 
 const TESTIMONIALS = [
   {
@@ -34,13 +35,15 @@ const INTERVAL_MS = 2500;
 
 export default function Testimonials() {
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
+    if (paused) return;
     const id = setInterval(() => {
       setIndex((i) => (i + 1) % TESTIMONIALS.length);
     }, INTERVAL_MS);
     return () => clearInterval(id);
-  }, []);
+  }, [paused]);
 
   const current = TESTIMONIALS[index];
 
@@ -60,18 +63,28 @@ export default function Testimonials() {
           {current.author}
         </p>
 
-        <div className="mt-10 flex gap-2">
-          {TESTIMONIALS.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              aria-label={`Ver depoimento ${i + 1}`}
-              onClick={() => setIndex(i)}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index ? "w-6 bg-white" : "w-1.5 bg-white/40"
-              }`}
-            />
-          ))}
+        <div className="mt-10 flex items-center gap-4">
+          <div className="flex gap-2">
+            {TESTIMONIALS.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Ver depoimento ${i + 1}`}
+                onClick={() => setIndex(i)}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === index ? "w-6 bg-white" : "w-1.5 bg-white/40"
+                }`}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setPaused((p) => !p)}
+            aria-label={paused ? "Continuar depoimentos" : "Pausar depoimentos"}
+            className="flex h-6 w-6 items-center justify-center text-white/70 hover:text-white"
+          >
+            {paused ? <Play size={14} /> : <Pause size={14} />}
+          </button>
         </div>
       </div>
 

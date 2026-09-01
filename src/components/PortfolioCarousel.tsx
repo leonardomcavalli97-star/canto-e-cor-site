@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { Pause, Play } from "lucide-react";
 
 const PIECES = [
   { src: "/gallery/nossa-senhora-oracao.webp", label: "Nossa Senhora" },
@@ -18,13 +19,15 @@ const INTERVAL_MS = 2500;
 
 export default function PortfolioCarousel({ className = "" }: { className?: string }) {
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
+    if (paused) return;
     const id = setInterval(() => {
       setIndex((i) => (i + 1) % PIECES.length);
     }, INTERVAL_MS);
     return () => clearInterval(id);
-  }, []);
+  }, [paused]);
 
   const current = PIECES[index];
 
@@ -38,18 +41,28 @@ export default function PortfolioCarousel({ className = "" }: { className?: stri
         sizes="(min-width: 768px) 50vw, 100vw"
         className="object-contain p-3 opacity-0 [animation:fade-in_0.5s_ease-out_forwards]"
       />
-      <div className="absolute inset-x-0 bottom-4 flex justify-center gap-2">
-        {PIECES.map((piece, i) => (
-          <button
-            key={piece.src}
-            type="button"
-            aria-label={`Ver ${piece.label}`}
-            onClick={() => setIndex(i)}
-            className={`h-1.5 rounded-full transition-all ${
-              i === index ? "w-6 bg-accent" : "w-1.5 bg-foreground/25"
-            }`}
-          />
-        ))}
+      <div className="absolute inset-x-0 bottom-4 flex items-center justify-center gap-4">
+        <div className="flex gap-2">
+          {PIECES.map((piece, i) => (
+            <button
+              key={piece.src}
+              type="button"
+              aria-label={`Ver ${piece.label}`}
+              onClick={() => setIndex(i)}
+              className={`h-1.5 rounded-full transition-all ${
+                i === index ? "w-6 bg-accent" : "w-1.5 bg-foreground/25"
+              }`}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setPaused((p) => !p)}
+          aria-label={paused ? "Continuar apresentação" : "Pausar apresentação"}
+          className="flex h-6 w-6 items-center justify-center text-foreground/50 hover:text-foreground"
+        >
+          {paused ? <Play size={14} /> : <Pause size={14} />}
+        </button>
       </div>
 
       <style>{`
