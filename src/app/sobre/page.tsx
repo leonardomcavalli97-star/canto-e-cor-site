@@ -21,8 +21,9 @@ export default function SobrePage() {
             história.
           </p>
           <p className="mt-4 text-foreground/80">
-            Pode ser um casal, um pet, uma viagem, um lugar especial ou qualquer outra
-            ideia que você queira transformar em arte.
+            Além das aquarelas, a página também é um espaço onde compartilho meus
+            projetos, processos criativos e um pouco do meu dia a dia como estudante
+            de Arquitetura.
           </p>
           <p className="mt-4 text-foreground/80">
             As aquarelas podem ser feitas nos formatos A5, A4 ou em tamanho
@@ -45,18 +46,19 @@ export default function SobrePage() {
             </h2>
             <div className="mt-6 space-y-4 text-foreground/80">
               <p>
-                Sou estudante de arquitetura, e foi dentro do curso que descobri a
-                aquarela como um jeito de reinventar e amadurecer a minha criatividade.
-                Não foi um caminho fácil &mdash; é uma jornada trabalhosa, mas que vale
-                muito a pena.
+                Sou a Lívia, estudante de Arquitetura e apaixonada por tudo que
+                envolve arte, criação e expressão.
               </p>
               <p>
-                No meio disso, conheci pessoas incríveis e aprendi coisas que nunca
-                imaginei ter contato. E com certeza a minha maior meta como profissional
-                é realizar sonhos de futuros clientes, principalmente aqueles que não têm
-                acesso ao mundo arquitetônico &mdash; e é um pouco desse espírito que
-                trago para o Canto e Cor: tornar uma peça de arte personalizada e feita à
-                mão algo acessível para quem quiser eternizar a sua história.
+                Desde pequena, muito influenciada pelo meu avô, desenvolvi uma
+                relação próxima com o universo artístico, passando por diferentes
+                técnicas como desenho, pintura e aquarela. Foi também esse olhar
+                criativo que me levou à Arquitetura, onde encontrei uma nova forma
+                de transformar ideias em experiências.
+              </p>
+              <p>
+                O Canto e Cor nasceu como uma extensão desse caminho: um espaço
+                onde arte, arquitetura e cotidiano se encontram.
               </p>
             </div>
           </div>
