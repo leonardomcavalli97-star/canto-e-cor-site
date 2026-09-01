@@ -14,28 +14,22 @@ const PIECES = [
   { src: "/gallery/cachorro-anjo.webp", label: "Homenagem a um pet" },
 ];
 
-const INTERVAL_MS = 3000;
+const INTERVAL_MS = 2500;
 
 export default function PortfolioCarousel({ className = "" }: { className?: string }) {
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (paused) return;
     const id = setInterval(() => {
       setIndex((i) => (i + 1) % PIECES.length);
     }, INTERVAL_MS);
     return () => clearInterval(id);
-  }, [paused]);
+  }, []);
 
   const current = PIECES[index];
 
   return (
-    <div
-      className={`relative aspect-[3/4] w-full overflow-hidden bg-surface ${className}`}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
+    <div className={`relative aspect-[3/4] w-full overflow-hidden bg-surface ${className}`}>
       <Image
         key={index}
         src={current.src}

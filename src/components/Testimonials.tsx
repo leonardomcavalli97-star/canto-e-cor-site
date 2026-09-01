@@ -30,28 +30,22 @@ const TESTIMONIALS = [
   },
 ];
 
-const INTERVAL_MS = 3000;
+const INTERVAL_MS = 2500;
 
 export default function Testimonials() {
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (paused) return;
     const id = setInterval(() => {
       setIndex((i) => (i + 1) % TESTIMONIALS.length);
     }, INTERVAL_MS);
     return () => clearInterval(id);
-  }, [paused]);
+  }, []);
 
   const current = TESTIMONIALS[index];
 
   return (
-    <section
-      className="bg-accent text-white"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
+    <section className="bg-accent text-white">
       <div className="mx-auto flex min-h-[20rem] max-w-3xl flex-col items-center justify-center px-6 py-20 text-center">
         <p
           key={index}
