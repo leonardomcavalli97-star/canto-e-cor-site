@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertTriangle,
   Ban,
   BarChart3,
   Check,
@@ -52,6 +53,8 @@ type Order = {
   createdAt: string;
   paymentReference?: string;
   paidAt?: string;
+  rushDays: number | null;
+  rushCents: number;
 };
 
 type Tone = "waiting" | "attention" | "progress" | "done" | "cancelled";
@@ -96,6 +99,18 @@ function formatDate(iso: string) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) +
     " " +
     d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function getRushDeadline(order: Order): Date | null {
+  if (order.rushDays === null) return null;
+  const start = new Date(order.paidAt ?? order.createdAt);
+  const deadline = new Date(start);
+  deadline.setDate(deadline.getDate() + order.rushDays);
+  return deadline;
+}
+
+function daysUntil(target: Date, now: number) {
+  return Math.ceil((target.getTime() - now) / (24 * 60 * 60 * 1000));
 }
 
 function itemSummary(item: OrderItem) {
@@ -388,6 +403,7 @@ function OrderDetailPanel({
 }) {
   const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
   const hasAddress = !!order.shippingAddress?.cep;
+  const rushDeadline = getRushDeadline(order);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -505,6 +521,10 @@ function OrderDetailPanel({
               <p>CEP {order.shippingAddress.cep}</p>
               <p className="text-muted">
                 Frete: {order.shippingCents === 0 ? "Grátis" : formatPrice(order.shippingCents)}
+              </p>
+              <p className="text-muted">
+                Prazo: {order.rushDays === null ? "Sem urgência (padrão, até 1 mês)" : `Em até ${order.rushDays} dias`}
+                {rushDeadline && ` · vence em ${formatDate(rushDeadline.toISOString())}`}
               </p>
             </div>
           ) : (
@@ -973,6 +993,14 @@ export default function AdminPage() {
     return Array.from(values);
   }, [orders]);
 
+  const urgentOrders = useMemo(() => {
+    return orders
+      .filter((o) => o.status === "paid" && o.rushDays !== null)
+      .map((o) => ({ order: o, deadline: getRushDeadline(o)! }))
+      .filter(({ deadline }) => daysUntil(deadline, now) <= 2)
+      .sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
+  }, [orders, now]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const dateLimits: Record<string, number> = { "7d": 7, "30d": 30 };
@@ -1069,6 +1097,37 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
+
+      {urgentOrders.length > 0 && (
+        <div className="mt-6 border border-accent/40 bg-accent/5 p-4">
+          <p className="flex items-center gap-2 text-sm font-medium text-accent">
+            <AlertTriangle size={16} /> Prazos expressos vencendo
+          </p>
+          <ul className="mt-2 space-y-1 text-sm text-foreground/80">
+            {urgentOrders.map(({ order, deadline }) => {
+              const d = daysUntil(deadline, now);
+              const label =
+                d < 0
+                  ? `atrasado ${Math.abs(d)} ${Math.abs(d) === 1 ? "dia" : "dias"}`
+                  : d === 0
+                    ? "vence hoje"
+                    : `vence em ${d} ${d === 1 ? "dia" : "dias"}`;
+              return (
+                <li key={order.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(order.id)}
+                    className="underline decoration-dotted hover:text-accent"
+                  >
+                    {order.name}
+                  </button>{" "}
+                  — {label} ({formatDate(deadline.toISOString())})
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {view === "report" ? (
         <MonthlyReport orders={orders} />

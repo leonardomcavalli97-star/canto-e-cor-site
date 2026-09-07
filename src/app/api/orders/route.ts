@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createOrder, type OrderItem, type OrderTheme, type ShippingAddress } from "@/lib/orders";
-import { PAPER_SIZES, SHIPPING_FLAT_CENTS, isFreeShippingAddress, type PaperSize } from "@/lib/pricing";
+import { PAPER_SIZES, SHIPPING_FLAT_CENTS, isFreeShippingAddress, getRushOption, type PaperSize } from "@/lib/pricing";
 import { sendNewOrderNotificationEmail } from "@/lib/email";
 
 const MAX_FILES = 5;
@@ -109,12 +109,16 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  const rushOption = getRushOption(String(formData.get("rushOption") ?? "standard"));
+
   const hasCustomItem = items.some((item) => item.unitPriceCents === null);
   const shippingCents = isFreeShippingAddress(shippingAddress.city, shippingAddress.state)
     ? 0
     : SHIPPING_FLAT_CENTS;
   const itemsSubtotal = items.reduce((sum, item) => sum + (item.unitPriceCents ?? 0) * item.quantity, 0);
-  const totalPriceCents = hasCustomItem ? null : itemsSubtotal + shippingCents;
+  const totalPriceCents = hasCustomItem
+    ? null
+    : itemsSubtotal + shippingCents + rushOption.priceCents;
 
   const order = await createOrder({
     name,
@@ -124,6 +128,8 @@ export async function POST(req: NextRequest) {
     shippingAddress,
     shippingCents,
     totalPriceCents,
+    rushDays: rushOption.days,
+    rushCents: rushOption.priceCents,
     status: totalPriceCents === null ? "pending_quote" : "pix_pending",
   });
 

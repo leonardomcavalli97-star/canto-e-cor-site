@@ -46,6 +46,8 @@ export interface OrderRecord {
   totalPriceCents: number | null;
   paymentReference?: string;
   paidAt?: string;
+  rushDays: number | null;
+  rushCents: number;
 }
 
 // Pedidos criados antes da mudança para múltiplos desenhos guardavam os
@@ -54,10 +56,19 @@ export interface OrderRecord {
 function normalizeOrder(raw: Record<string, unknown>): OrderRecord {
   const shippingAddress = (raw.shippingAddress as ShippingAddress) ?? EMPTY_ADDRESS;
   const shippingCents = typeof raw.shippingCents === "number" ? raw.shippingCents : 0;
+  const rushDays = typeof raw.rushDays === "number" ? raw.rushDays : null;
+  const rushCents = typeof raw.rushCents === "number" ? raw.rushCents : 0;
 
   if (Array.isArray(raw.items)) {
     const paymentReference = (raw.paymentReference ?? raw.stripeSessionId) as string | undefined;
-    return { ...(raw as unknown as OrderRecord), shippingAddress, shippingCents, paymentReference };
+    return {
+      ...(raw as unknown as OrderRecord),
+      shippingAddress,
+      shippingCents,
+      paymentReference,
+      rushDays,
+      rushCents,
+    };
   }
 
   const legacyPriceCents = (raw.priceCents as number | null) ?? null;
@@ -82,6 +93,8 @@ function normalizeOrder(raw: Record<string, unknown>): OrderRecord {
     shippingCents,
     totalPriceCents: legacyPriceCents,
     paymentReference: (raw.paymentReference ?? raw.stripeSessionId) as string | undefined,
+    rushDays,
+    rushCents,
   };
 }
 

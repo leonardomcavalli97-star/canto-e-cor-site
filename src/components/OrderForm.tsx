@@ -6,8 +6,10 @@ import { upload } from "@vercel/blob/client";
 import {
   PAPER_SIZES,
   SHIPPING_FLAT_CENTS,
+  RUSH_OPTIONS,
   THEME_OPTIONS as THEMES,
   isFreeShippingAddress,
+  getRushOption,
   formatPrice,
   type PaperSize,
 } from "@/lib/pricing";
@@ -80,6 +82,9 @@ export default function OrderForm() {
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
+
+  // Prazo de entrega (urgência).
+  const [rushOption, setRushOptionValue] = useState("standard");
 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -265,6 +270,7 @@ export default function OrderForm() {
     formData.set("neighborhood", neighborhood);
     formData.set("city", city);
     formData.set("state", state);
+    formData.set("rushOption", rushOption);
     finalItems.forEach((item, i) => {
       formData.set(`item_${i}_paperSize`, item.paperSize);
       formData.set(`item_${i}_theme`, item.theme);
@@ -334,7 +340,9 @@ export default function OrderForm() {
   const addressFilled = city.trim().length > 0 && state.trim().length > 0;
   const isFreeShipping = !addressFilled || isFreeShippingAddress(city, state);
   const shippingCents = isFreeShipping ? 0 : SHIPPING_FLAT_CENTS;
-  const grandTotal = overallHasCustom ? null : cartSubtotal + currentSubtotal + shippingCents;
+  const rushCents = getRushOption(rushOption).priceCents;
+  const grandTotal =
+    overallHasCustom ? null : cartSubtotal + currentSubtotal + shippingCents + rushCents;
 
   const totalPieceCount =
     cartItems.reduce((n, item) => n + item.quantity, 0) + (willIncludeCurrent ? quantity : 0);
@@ -749,6 +757,38 @@ export default function OrderForm() {
             <p className="mt-3 text-xs text-muted">Frete grátis para Campo Grande - MS.</p>
           </fieldset>
 
+          <fieldset>
+            <legend className="flex items-baseline gap-3">
+              <span className="font-serif-display text-3xl text-accent/40">07</span>
+              <span className="font-serif-display text-xl text-foreground">Prazo de entrega</span>
+            </legend>
+            <p className="mt-2 text-sm text-foreground/70">
+              O prazo padrão é de até 1 mês, podendo variar conforme a demanda. Se
+              quiser priorizar sua encomenda, escolha um prazo mais curto abaixo.
+            </p>
+            <div className="mt-4 space-y-2">
+              {RUSH_OPTIONS.map((opt) => {
+                const selected = rushOption === opt.value;
+                return (
+                  <button
+                    type="button"
+                    key={opt.value}
+                    onClick={() => setRushOptionValue(opt.value)}
+                    aria-pressed={selected}
+                    className={`flex w-full items-center justify-between border p-4 text-left transition-colors ${
+                      selected ? "border-accent bg-accent/5" : "border-border hover:border-accent/50"
+                    }`}
+                  >
+                    <span className="text-sm text-foreground">{opt.label}</span>
+                    <span className={opt.priceCents > 0 ? "text-accent" : "text-muted"}>
+                      {opt.priceCents > 0 ? `+ ${formatPrice(opt.priceCents)}` : "Grátis"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
         </div>
 
         <aside className="hidden lg:block lg:sticky lg:top-28">
@@ -826,6 +866,12 @@ export default function OrderForm() {
                   <span className={isFreeShipping ? "text-accent" : ""}>
                     {isFreeShipping ? "Grátis" : formatPrice(SHIPPING_FLAT_CENTS)}
                   </span>
+                </div>
+              )}
+              {!overallHasCustom && rushCents > 0 && (
+                <div className="mt-1 flex items-baseline justify-between text-sm text-foreground/70">
+                  <span>Prazo · {getRushOption(rushOption).label}</span>
+                  <span>{formatPrice(rushCents)}</span>
                 </div>
               )}
               <div className={`flex items-baseline justify-between ${!overallHasCustom ? "mt-2" : ""}`}>
