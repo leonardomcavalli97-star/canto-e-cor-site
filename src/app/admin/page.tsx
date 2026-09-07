@@ -8,6 +8,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Copy,
   ImageIcon,
   Mail,
@@ -111,6 +112,27 @@ function getRushDeadline(order: Order): Date | null {
 
 function daysUntil(target: Date, now: number) {
   return Math.ceil((target.getTime() - now) / (24 * 60 * 60 * 1000));
+}
+
+function rushUrgency(deadline: Date | null, now: number): "overdue" | "soon" | "normal" | null {
+  if (!deadline) return null;
+  const d = daysUntil(deadline, now);
+  if (d < 0) return "overdue";
+  if (d <= 2) return "soon";
+  return "normal";
+}
+
+const URGENCY_CLASSES: Record<"overdue" | "soon" | "normal", string> = {
+  overdue: "border-accent bg-accent/10 text-accent",
+  soon: "border-amber-500 bg-amber-500/10 text-amber-800",
+  normal: "border-border bg-surface text-foreground/80",
+};
+
+function urgencyLabel(deadline: Date, now: number) {
+  const d = daysUntil(deadline, now);
+  if (d < 0) return `atrasado ${Math.abs(d)} ${Math.abs(d) === 1 ? "dia" : "dias"}`;
+  if (d === 0) return "vence hoje";
+  return `vence em ${d} ${d === 1 ? "dia" : "dias"}`;
 }
 
 function itemSummary(item: OrderItem) {
@@ -386,6 +408,7 @@ function QuoteForm({ orderId }: { orderId: string }) {
 
 function OrderDetailPanel({
   order,
+  now,
   onClose,
   onOpenImage,
   onMarkPaid,
@@ -394,6 +417,7 @@ function OrderDetailPanel({
   onDelete,
 }: {
   order: Order;
+  now: number;
   onClose: () => void;
   onOpenImage: (src: string) => void;
   onMarkPaid: (id: string) => void;
@@ -404,6 +428,7 @@ function OrderDetailPanel({
   const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
   const hasAddress = !!order.shippingAddress?.cep;
   const rushDeadline = getRushDeadline(order);
+  const urgency = rushUrgency(rushDeadline, now);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -435,6 +460,24 @@ function OrderDetailPanel({
           <StatusBadge label={meta.order} tone={meta.tone} />
           <StatusBadge label={meta.payment} tone={meta.tone === "attention" ? "attention" : meta.tone} />
         </div>
+
+        {order.rushDays !== null && (
+          <div
+            className={`mt-4 flex items-center gap-3 border p-3 ${
+              URGENCY_CLASSES[urgency ?? "normal"]
+            }`}
+          >
+            <Clock size={18} className="shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium">Prazo expresso: em até {order.rushDays} dias</p>
+              {rushDeadline && (
+                <p className="text-xs opacity-80">
+                  Vence em {formatDate(rushDeadline.toISOString())} · {urgencyLabel(rushDeadline, now)}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         <section className="mt-8">
           <h3 className="text-xs font-medium tracking-wide text-muted uppercase">Cliente</h3>
@@ -522,10 +565,6 @@ function OrderDetailPanel({
               <p className="text-muted">
                 Frete: {order.shippingCents === 0 ? "Grátis" : formatPrice(order.shippingCents)}
               </p>
-              <p className="text-muted">
-                Prazo: {order.rushDays === null ? "Sem urgência (padrão, até 1 mês)" : `Em até ${order.rushDays} dias`}
-                {rushDeadline && ` · vence em ${formatDate(rushDeadline.toISOString())}`}
-              </p>
             </div>
           ) : (
             <p className="mt-2 text-sm text-muted">Sem endereço cadastrado.</p>
@@ -583,6 +622,7 @@ function OrderDetailPanel({
 
 type RowProps = {
   order: Order;
+  now: number;
   onOpenDetails: () => void;
   onOpenImage: (src: string) => void;
   onMarkPaid: (id: string) => void;
@@ -591,7 +631,21 @@ type RowProps = {
   onDelete: (id: string) => void;
 };
 
-function DesktopOrderRow({ order, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel, onDelete }: RowProps) {
+function RushIndicator({ order, now }: { order: Order; now: number }) {
+  if (order.rushDays === null) return null;
+  const deadline = getRushDeadline(order);
+  const urgency = rushUrgency(deadline, now);
+  const textClass =
+    urgency === "overdue" ? "text-accent" : urgency === "soon" ? "text-amber-800" : "text-muted";
+  return (
+    <p className={`mt-0.5 flex items-center gap-1 truncate text-xs ${textClass}`}>
+      <Clock size={11} className="shrink-0" />
+      {order.rushDays}d{deadline ? ` · ${urgencyLabel(deadline, now)}` : ""}
+    </p>
+  );
+}
+
+function DesktopOrderRow({ order, now, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel, onDelete }: RowProps) {
   const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
 
   return (
@@ -603,7 +657,10 @@ function DesktopOrderRow({ order, onOpenDetails, onOpenImage, onMarkPaid, onMark
       <td className="min-w-0 px-4 py-3 align-middle">
         <div className="flex min-w-0 items-center gap-2">
           <Thumbnails order={order} onOpen={onOpenImage} />
-          <p className="truncate text-sm text-foreground/80">{orderSummary(order)}</p>
+          <div className="min-w-0">
+            <p className="truncate text-sm text-foreground/80">{orderSummary(order)}</p>
+            <RushIndicator order={order} now={now} />
+          </div>
         </div>
       </td>
       <td className="px-4 py-3 align-middle text-xs whitespace-nowrap text-muted">
@@ -645,7 +702,7 @@ function DesktopOrderRow({ order, onOpenDetails, onOpenImage, onMarkPaid, onMark
   );
 }
 
-function MobileOrderCard({ order, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel, onDelete }: RowProps) {
+function MobileOrderCard({ order, now, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel, onDelete }: RowProps) {
   const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
 
   return (
@@ -671,7 +728,10 @@ function MobileOrderCard({ order, onOpenDetails, onOpenImage, onMarkPaid, onMark
       </div>
       <div className="flex items-center gap-2">
         <Thumbnails order={order} onOpen={onOpenImage} />
-        <p className="truncate text-sm text-foreground/80">{orderSummary(order)}</p>
+        <div className="min-w-0">
+          <p className="truncate text-sm text-foreground/80">{orderSummary(order)}</p>
+          <RushIndicator order={order} now={now} />
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <StatusBadge label={meta.payment} tone={meta.tone} />
@@ -1033,6 +1093,14 @@ export default function AdminPage() {
     list = [...list].sort((a, b) => {
       if (sortBy === "recent") return b.createdAt.localeCompare(a.createdAt);
       if (sortBy === "oldest") return a.createdAt.localeCompare(b.createdAt);
+      if (sortBy === "deadline") {
+        const ad = getRushDeadline(a);
+        const bd = getRushDeadline(b);
+        if (!ad && !bd) return 0;
+        if (!ad) return 1;
+        if (!bd) return -1;
+        return ad.getTime() - bd.getTime();
+      }
       const av = a.totalPriceCents;
       const bv = b.totalPriceCents;
       if (av === null && bv === null) return 0;
@@ -1105,13 +1173,6 @@ export default function AdminPage() {
           </p>
           <ul className="mt-2 space-y-1 text-sm text-foreground/80">
             {urgentOrders.map(({ order, deadline }) => {
-              const d = daysUntil(deadline, now);
-              const label =
-                d < 0
-                  ? `atrasado ${Math.abs(d)} ${Math.abs(d) === 1 ? "dia" : "dias"}`
-                  : d === 0
-                    ? "vence hoje"
-                    : `vence em ${d} ${d === 1 ? "dia" : "dias"}`;
               return (
                 <li key={order.id}>
                   <button
@@ -1121,7 +1182,7 @@ export default function AdminPage() {
                   >
                     {order.name}
                   </button>{" "}
-                  — {label} ({formatDate(deadline.toISOString())})
+                  — {urgencyLabel(deadline, now)} ({formatDate(deadline.toISOString())})
                 </li>
               );
             })}
@@ -1207,6 +1268,7 @@ export default function AdminPage() {
           >
             <option value="recent">Mais recentes</option>
             <option value="oldest">Mais antigos</option>
+            <option value="deadline">Prazo mais próximo</option>
             <option value="highest">Maior valor</option>
             <option value="lowest">Menor valor</option>
           </select>
@@ -1244,6 +1306,7 @@ export default function AdminPage() {
                   <DesktopOrderRow
                     key={order.id}
                     order={order}
+                    now={now}
                     onOpenDetails={() => setSelectedId(order.id)}
                     onOpenImage={setLightboxSrc}
                     onMarkPaid={handleMarkPaid}
@@ -1260,6 +1323,7 @@ export default function AdminPage() {
                 <MobileOrderCard
                   key={order.id}
                   order={order}
+                  now={now}
                   onOpenDetails={() => setSelectedId(order.id)}
                   onOpenImage={setLightboxSrc}
                   onMarkPaid={handleMarkPaid}
@@ -1278,6 +1342,7 @@ export default function AdminPage() {
       {selectedOrder && (
         <OrderDetailPanel
           order={selectedOrder}
+          now={now}
           onClose={() => setSelectedId(null)}
           onOpenImage={setLightboxSrc}
           onMarkPaid={handleMarkPaid}
