@@ -28,6 +28,7 @@ import {
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_QUANTITY = 10;
+const MAX_ITEMS = 10;
 
 type CartItem = {
   paperSize: PaperSize;
@@ -206,6 +207,10 @@ export default function OrderForm() {
   }
 
   function handleAddAnother() {
+    if (cartItems.length >= MAX_ITEMS) {
+      setFileError(`Você pode incluir no máximo ${MAX_ITEMS} desenhos por pedido.`);
+      return;
+    }
     const error = validateCurrentItem();
     if (error) {
       setFileError(error);
@@ -338,7 +343,7 @@ export default function OrderForm() {
   }, 0);
   const currentSubtotal = willIncludeCurrent && currentUnitPrice !== null ? currentUnitPrice * quantity : 0;
   const addressFilled = city.trim().length > 0 && state.trim().length > 0;
-  const isFreeShipping = !addressFilled || isFreeShippingAddress(city, state);
+  const isFreeShipping = addressFilled && isFreeShippingAddress(city, state);
   const shippingCents = isFreeShipping ? 0 : SHIPPING_FLAT_CENTS;
 
   const totalPieceCount =
@@ -419,7 +424,7 @@ export default function OrderForm() {
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   aria-label="Diminuir quantidade"
-                  className="flex h-9 w-9 items-center justify-center border border-border bg-background hover:border-accent"
+                  className="flex h-11 w-11 items-center justify-center border border-border bg-background hover:border-accent"
                 >
                   <Minus size={14} />
                 </button>
@@ -430,7 +435,7 @@ export default function OrderForm() {
                   type="button"
                   onClick={() => setQuantity((q) => Math.min(MAX_QUANTITY, q + 1))}
                   aria-label="Aumentar quantidade"
-                  className="flex h-9 w-9 items-center justify-center border border-border bg-background hover:border-accent"
+                  className="flex h-11 w-11 items-center justify-center border border-border bg-background hover:border-accent"
                 >
                   <Plus size={14} />
                 </button>
@@ -569,6 +574,7 @@ export default function OrderForm() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
+              maxLength={2000}
               placeholder="Ex: quero o casal da foto, com fundo neutro em tons pastel, focando do peito para cima..."
               className="mt-4 w-full border border-border bg-surface p-4 text-sm outline-none focus:border-accent"
             />
@@ -622,10 +628,14 @@ export default function OrderForm() {
           <button
             type="button"
             onClick={handleAddAnother}
-            className="flex items-center gap-2 border border-dashed border-accent px-5 py-3 text-sm text-accent transition-colors hover:bg-accent/5"
+            disabled={cartItems.length >= MAX_ITEMS}
+            className="flex items-center gap-2 border border-dashed border-accent px-5 py-3 text-sm text-accent transition-colors hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
             <Plus size={16} /> Adicionar outro desenho
           </button>
+          {cartItems.length >= MAX_ITEMS && (
+            <p className="mt-2 text-xs text-muted">Limite de {MAX_ITEMS} desenhos por pedido atingido.</p>
+          )}
 
           <fieldset>
             <legend className="flex items-baseline gap-3">
@@ -640,6 +650,7 @@ export default function OrderForm() {
                   name="name"
                   type="text"
                   required
+                  maxLength={200}
                   className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
@@ -650,6 +661,7 @@ export default function OrderForm() {
                   name="email"
                   type="email"
                   required
+                  maxLength={254}
                   className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
@@ -660,6 +672,7 @@ export default function OrderForm() {
                   name="phone"
                   type="tel"
                   required
+                  maxLength={30}
                   placeholder="(11) 91234-5678"
                   className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
@@ -694,6 +707,7 @@ export default function OrderForm() {
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
                   type="text"
+                  maxLength={200}
                   autoComplete="address-line1"
                   className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
@@ -705,6 +719,7 @@ export default function OrderForm() {
                   value={number}
                   onChange={(e) => setNumber(e.target.value)}
                   type="text"
+                  maxLength={20}
                   className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
@@ -715,6 +730,7 @@ export default function OrderForm() {
                   value={complement}
                   onChange={(e) => setComplement(e.target.value)}
                   type="text"
+                  maxLength={200}
                   placeholder="Apto, bloco, ponto de referência..."
                   autoComplete="address-line2"
                   className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
@@ -727,6 +743,7 @@ export default function OrderForm() {
                   value={neighborhood}
                   onChange={(e) => setNeighborhood(e.target.value)}
                   type="text"
+                  maxLength={200}
                   className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
@@ -737,6 +754,7 @@ export default function OrderForm() {
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   type="text"
+                  maxLength={200}
                   autoComplete="address-level2"
                   className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />

@@ -17,6 +17,10 @@ export async function POST(
 
   const { id } = await ctx.params;
   const order = await updateOrderStatus(id, "shipped");
-  await sendOrderShippedEmail(order.email, order.name);
+  try {
+    await sendOrderShippedEmail(order.email, order.name);
+  } catch (error) {
+    console.error("Falha ao enviar e-mail de pedido enviado", id, error);
+  }
   return NextResponse.json({ ok: true });
 }

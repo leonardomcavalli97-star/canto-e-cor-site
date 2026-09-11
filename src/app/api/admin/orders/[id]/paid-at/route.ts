@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE_NAME, isValidSession } from "@/lib/adminAuth";
-import { updateOrderStatus } from "@/lib/orders";
-import { sendPaymentConfirmedEmail } from "@/lib/email";
+import { setOrderPaidAt } from "@/lib/orders";
 
 export async function POST(
-  _req: NextRequest,
-  ctx: RouteContext<"/api/admin/orders/[id]/mark-paid">
+  req: NextRequest,
+  ctx: RouteContext<"/api/admin/orders/[id]/paid-at">
 ) {
   const cookieStore = await cookies();
   const token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
@@ -16,11 +15,18 @@ export async function POST(
   }
 
   const { id } = await ctx.params;
-  const order = await updateOrderStatus(id, "paid");
-  try {
-    await sendPaymentConfirmedEmail(order.email, order.name);
-  } catch (error) {
-    console.error("Falha ao enviar e-mail de pagamento confirmado", id, error);
+  const body = await req.json();
+  const paidAt = typeof body.paidAt === "string" ? body.paidAt : "";
+
+  if (!paidAt) {
+    return NextResponse.json({ error: "Informe uma data." }, { status: 400 });
   }
+
+  try {
+    await setOrderPaidAt(id, paidAt);
+  } catch {
+    return NextResponse.json({ error: "Data inválida." }, { status: 400 });
+  }
+
   return NextResponse.json({ ok: true });
 }

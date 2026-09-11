@@ -17,6 +17,10 @@ export async function GET(
   const { path } = await ctx.params;
   const pathname = path.join("/");
 
+  if (!pathname.startsWith("uploads/")) {
+    return NextResponse.json({ error: "Caminho inválido." }, { status: 400 });
+  }
+
   const result = await get(pathname, { access: "private" });
   if (!result || result.statusCode !== 200) {
     return NextResponse.json({ error: "Arquivo não encontrado." }, { status: 404 });

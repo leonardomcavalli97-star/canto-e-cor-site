@@ -26,8 +26,8 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `/pedido` — **formulário de encomenda** (tamanho, tema, foto de referência,
   descrição, dados de contato) → cria a encomenda e mostra o Pix (QR Code próprio)
 - `/contato` — Instagram do ateliê
-- `src/lib/pricing.ts` — tamanhos e preços (A5 R$150 / A4 R$180). Mude aqui se os
-  valores da tabela mudarem.
+- `src/lib/pricing.ts` — tamanhos e preços (A5 R$180 / A4 R$210), taxas de prazo
+  expresso e frete. Mude aqui se os valores da tabela mudarem.
 - `src/components/ui/sidebar.tsx` — barra de navegação do topo (ícone + nome revelado
   ao passar o mouse na barra; menu mobile em tela cheia)
 - `public/brand/` — logo, selo, "Made with love.", assinatura e listrados em SVG
@@ -36,20 +36,28 @@ Abra [http://localhost:3000](http://localhost:3000).
 ## Pagamento (Pix)
 
 Único meio de pagamento do site. Código estático gerado na hora (via `pix-utils`),
-com a chave Pix do ateliê configurada em `src/lib/pix.ts` (hoje: chave celular da
-Lívia) — não depende de nenhuma conta/API externa.
+sem depender de nenhuma conta/API externa — não é possível confirmar pagamento
+automaticamente, a confirmação é sempre manual pelo admin.
 
-Pra trocar a chave Pix no futuro, edite `PIX_KEY`, `PIX_MERCHANT_NAME` e
-`PIX_MERCHANT_CITY` em `src/lib/pix.ts`.
+A chave Pix vem da variável de ambiente `PIX_KEY` (veja `.env.example`); se não
+estiver configurada, `src/lib/pix.ts` usa a chave da Lívia como padrão. Nome e cidade
+do titular ficam fixos em `PIX_MERCHANT_NAME`/`PIX_MERCHANT_CITY`, no mesmo arquivo.
 
 ## Onde ficam os pedidos
 
-Por enquanto, pedidos e fotos de referência são salvos localmente em `data/orders/` e
-`data/uploads/` (fora do Git). **Isso funciona rodando em um servidor próprio ou VPS,
-mas não em hospedagens serverless como Vercel**, onde o disco é temporário — antes de
-publicar em produção, trocar esse armazenamento por um serviço externo (ex: Vercel
-Blob para as fotos + um banco de dados) e configurar notificação por e-mail para você
-saber quando chega um pedido novo.
+Pedidos (JSON) e fotos de referência são salvos no **Vercel Blob**, com acesso
+`private` (ver `src/lib/orders.ts`). As fotos nunca são expostas por URL direta: o
+admin sempre acessa por uma rota autenticada (`/api/admin/files/[...path]`) que só
+serve caminhos dentro de `uploads/`. Um e-mail (via Resend, `src/lib/email.ts`) avisa
+a Lívia a cada pedido novo — se essa variável (`RESEND_API_KEY`) não estiver
+configurada, os e-mails simplesmente não saem (sem erro visível), então confira o
+`.env.example` ao configurar um ambiente novo.
+
+## Env vars necessárias
+
+Veja `.env.example`: `ADMIN_PASSWORD`, `ADMIN_NOTIFICATION_EMAIL`, `RESEND_API_KEY`,
+`BLOB_READ_WRITE_TOKEN` (gerada automaticamente ao conectar um Blob Store na Vercel) e,
+opcionalmente, `PIX_KEY`.
 
 ## Próximos passos sugeridos
 

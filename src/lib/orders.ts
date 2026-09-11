@@ -48,6 +48,7 @@ export interface OrderRecord {
   paidAt?: string;
   rushDays: number | null;
   rushCents: number;
+  notes?: string;
 }
 
 // Pedidos criados antes da mudança para múltiplos desenhos guardavam os
@@ -165,11 +166,31 @@ export async function updateOrderStatus(
   return writeOrder(record);
 }
 
+export async function setOrderNotes(id: string, notes: string) {
+  const raw = await readOrderJson(orderPathname(id));
+  if (!raw) throw new Error("Pedido não encontrado.");
+  const record = normalizeOrder(raw);
+  record.notes = notes.slice(0, 4000);
+  return writeOrder(record);
+}
+
+export async function setOrderPaidAt(id: string, paidAt: string) {
+  const raw = await readOrderJson(orderPathname(id));
+  if (!raw) throw new Error("Pedido não encontrado.");
+  const record = normalizeOrder(raw);
+  const parsed = new Date(paidAt);
+  if (Number.isNaN(parsed.getTime())) throw new Error("Data inválida.");
+  record.paidAt = parsed.toISOString();
+  return writeOrder(record);
+}
+
 export async function deleteOrder(id: string) {
   const raw = await readOrderJson(orderPathname(id));
   if (raw) {
     const record = normalizeOrder(raw);
-    const filePaths = record.items.flatMap((item) => item.referenceFiles);
+    const filePaths = record.items
+      .flatMap((item) => item.referenceFiles)
+      .filter((path) => path.startsWith("uploads/"));
     if (filePaths.length > 0) {
       await del(filePaths).catch(() => {});
     }

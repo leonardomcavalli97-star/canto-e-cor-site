@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Clock,
   Copy,
+  Download,
   ImageIcon,
   Mail,
   MapPin,
@@ -56,6 +57,7 @@ type Order = {
   paidAt?: string;
   rushDays: number | null;
   rushCents: number;
+  notes?: string;
 };
 
 type Tone = "waiting" | "attention" | "progress" | "done" | "cancelled";
@@ -162,6 +164,49 @@ async function copyText(text: string) {
   } catch {
     return false;
   }
+}
+
+function csvCell(value: string) {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+function exportOrdersCsv(orders: Order[]) {
+  const header = [
+    "ID",
+    "Data",
+    "Status",
+    "Nome",
+    "E-mail",
+    "Telefone",
+    "Itens",
+    "Total (R$)",
+    "Cidade",
+    "Estado",
+    "Pago em",
+  ];
+
+  const rows = orders.map((o) => [
+    o.id,
+    formatDate(o.createdAt),
+    STATUS_META[o.status]?.order ?? o.status,
+    o.name,
+    o.email,
+    o.phone,
+    orderSummary(o),
+    o.totalPriceCents !== null ? (o.totalPriceCents / 100).toFixed(2).replace(".", ",") : "",
+    o.shippingAddress?.city ?? "",
+    o.shippingAddress?.state ?? "",
+    o.paidAt ? formatDate(o.paidAt) : "",
+  ]);
+
+  const csv = [header, ...rows].map((row) => row.map(csvCell).join(";")).join("\n");
+  const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `pedidos-canto-e-cor-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function StatusBadge({ label, tone }: { label: string; tone: Tone }) {
@@ -406,6 +451,111 @@ function QuoteForm({ orderId }: { orderId: string }) {
   );
 }
 
+function NotesEditor({ orderId, initialNotes }: { orderId: string; initialNotes: string }) {
+  const [notes, setNotes] = useState(initialNotes);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    const res = await fetch(`/api/admin/orders/${orderId}/notes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      setError("Não foi possível salvar a nota.");
+      return;
+    }
+    setSavedAt(Date.now());
+  }
+
+  return (
+    <section className="mt-6">
+      <h3 className="text-xs font-medium tracking-wide text-muted uppercase">Notas internas</h3>
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        rows={3}
+        maxLength={4000}
+        placeholder="Ex: combinou mudança de cor por WhatsApp em 12/09..."
+        className="mt-2 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+      />
+      <div className="mt-1 flex items-center gap-3">
+        <button
+          type="button"
+          disabled={saving}
+          onClick={handleSave}
+          className="border border-border px-3 py-1.5 text-xs tracking-wide text-foreground/70 uppercase hover:border-accent hover:text-accent disabled:opacity-60"
+        >
+          {saving ? "Salvando..." : "Salvar nota"}
+        </button>
+        {savedAt && <span className="text-xs text-muted">Salvo.</span>}
+        {error && <span className="text-xs text-accent">{error}</span>}
+      </div>
+    </section>
+  );
+}
+
+function PaidAtEditor({ orderId, paidAt }: { orderId: string; paidAt?: string }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(() => (paidAt ? paidAt.slice(0, 16) : ""));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    if (!value) return;
+    setSaving(true);
+    setError(null);
+    const res = await fetch(`/api/admin/orders/${orderId}/paid-at`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paidAt: new Date(value).toISOString() }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      setError("Não foi possível corrigir a data.");
+      return;
+    }
+    setEditing(false);
+    window.location.reload();
+  }
+
+  if (!editing) {
+    return (
+      <button type="button" onClick={() => setEditing(true)} className="text-xs text-muted underline">
+        {paidAt ? "Corrigir data de pagamento" : "Definir data de pagamento"}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <input
+        type="datetime-local"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="border border-border bg-background p-2 text-xs outline-none focus:border-accent"
+      />
+      <button
+        type="button"
+        disabled={saving}
+        onClick={handleSave}
+        className="bg-accent px-3 py-1.5 text-xs tracking-wide text-white uppercase hover:bg-accent-dark disabled:opacity-60"
+      >
+        {saving ? "Salvando..." : "Salvar"}
+      </button>
+      <button type="button" onClick={() => setEditing(false)} className="text-xs text-muted underline">
+        Cancelar
+      </button>
+      {error && <span className="text-xs text-accent">{error}</span>}
+    </div>
+  );
+}
+
 function OrderDetailPanel({
   order,
   now,
@@ -576,8 +726,12 @@ function OrderDetailPanel({
           <div className="mt-2 space-y-1 text-sm text-foreground/80">
             <p className="text-lg font-medium text-accent">{formatPrice(order.totalPriceCents)}</p>
             <p>Método: {paymentMethodLabel(order)}</p>
+            {order.paidAt && <p className="text-muted">Pago em {formatDate(order.paidAt)}</p>}
+            <PaidAtEditor orderId={order.id} paidAt={order.paidAt} />
           </div>
         </section>
+
+        <NotesEditor orderId={order.id} initialNotes={order.notes ?? ""} />
 
         <div className="mt-8 flex flex-wrap gap-2 border-t border-border pt-6">
           {(order.status === "pix_pending" || order.status === "pending_payment") && (
@@ -966,7 +1120,13 @@ export default function AdminPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [now] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -1000,6 +1160,15 @@ export default function AdminPage() {
     };
   }, []);
 
+  // Atualiza a lista sozinha de tempos em tempos, para não ficar olhando
+  // dados desatualizados se o painel ficar aberto em mais de um lugar.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") loadOrders();
+    }, 2 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoginError(null);
@@ -1024,25 +1193,45 @@ export default function AdminPage() {
   }
 
   async function handleMarkPaid(id: string) {
-    await fetch(`/api/admin/orders/${id}/mark-paid`, { method: "POST" });
+    setActionError(null);
+    const res = await fetch(`/api/admin/orders/${id}/mark-paid`, { method: "POST" });
+    if (!res.ok) {
+      setActionError("Não foi possível marcar como pago. Tente novamente.");
+      return;
+    }
     loadOrders();
   }
 
   async function handleMarkShipped(id: string) {
-    await fetch(`/api/admin/orders/${id}/mark-shipped`, { method: "POST" });
+    setActionError(null);
+    const res = await fetch(`/api/admin/orders/${id}/mark-shipped`, { method: "POST" });
+    if (!res.ok) {
+      setActionError("Não foi possível marcar como enviado. Tente novamente.");
+      return;
+    }
     loadOrders();
   }
 
   async function handleCancel(id: string) {
     if (!window.confirm("Cancelar este pedido?")) return;
-    await fetch(`/api/admin/orders/${id}/cancel`, { method: "POST" });
+    setActionError(null);
+    const res = await fetch(`/api/admin/orders/${id}/cancel`, { method: "POST" });
+    if (!res.ok) {
+      setActionError("Não foi possível cancelar o pedido. Tente novamente.");
+      return;
+    }
     setSelectedId((current) => (current === id ? null : current));
     loadOrders();
   }
 
   async function handleDelete(id: string) {
     if (!window.confirm("Excluir este pedido definitivamente? Essa ação não pode ser desfeita.")) return;
-    await fetch(`/api/admin/orders/${id}`, { method: "DELETE" });
+    setActionError(null);
+    const res = await fetch(`/api/admin/orders/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      setActionError("Não foi possível excluir o pedido. Tente novamente.");
+      return;
+    }
     setSelectedId((current) => (current === id ? null : current));
     loadOrders();
   }
@@ -1055,7 +1244,11 @@ export default function AdminPage() {
 
   const urgentOrders = useMemo(() => {
     return orders
-      .filter((o) => o.status === "paid" && o.rushDays !== null)
+      .filter(
+        (o) =>
+          o.rushDays !== null &&
+          (o.status === "paid" || o.status === "pix_pending" || o.status === "pending_payment")
+      )
       .map((o) => ({ order: o, deadline: getRushDeadline(o)! }))
       .filter(({ deadline }) => daysUntil(deadline, now) <= 2)
       .sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
@@ -1183,10 +1376,22 @@ export default function AdminPage() {
                     {order.name}
                   </button>{" "}
                   — {urgencyLabel(deadline, now)} ({formatDate(deadline.toISOString())})
+                  {order.status !== "paid" && (
+                    <span className="ml-1.5 text-xs text-accent/80">· ainda não pago</span>
+                  )}
                 </li>
               );
             })}
           </ul>
+        </div>
+      )}
+
+      {actionError && (
+        <div className="mt-6 flex items-center justify-between gap-3 border border-accent/40 bg-accent/5 p-3 text-sm text-accent">
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="text-xs underline">
+            Fechar
+          </button>
         </div>
       )}
 
@@ -1212,6 +1417,37 @@ export default function AdminPage() {
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => {
+            const inProduction = orders.filter((o) => o.status === "paid");
+            const pieces = inProduction.reduce(
+              (sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0),
+              0
+            );
+            window.alert(
+              `${inProduction.length} pedido(s) em produção · ${pieces} peça(s) no total para pintar.`
+            );
+          }}
+          className="border border-border bg-surface p-4 text-left transition-colors hover:border-accent/40"
+        >
+          <p className="font-serif-display text-2xl text-foreground">
+            {orders
+              .filter((o) => o.status === "paid")
+              .reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0)}
+          </p>
+          <p className="mt-1 text-xs text-muted">Peças em produção</p>
+        </button>
+      </div>
+
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => exportOrdersCsv(orders)}
+          className="flex items-center gap-1.5 border border-border px-3 py-1.5 text-xs tracking-wide text-foreground/70 uppercase hover:border-accent hover:text-accent"
+        >
+          <Download size={14} /> Exportar CSV
+        </button>
       </div>
 
       <div className="mt-8 flex flex-col gap-3 lg:flex-row lg:items-center">

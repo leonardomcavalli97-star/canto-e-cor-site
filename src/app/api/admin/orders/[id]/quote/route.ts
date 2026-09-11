@@ -33,7 +33,11 @@ export async function POST(
   const origin = req.nextUrl.origin;
   const pixUrl = `${origin}/pedido-pix?order_id=${id}`;
 
-  await sendQuoteReadyEmail(order.email, order.name, amountCents, pixUrl);
+  try {
+    await sendQuoteReadyEmail(order.email, order.name, amountCents, pixUrl);
+  } catch (error) {
+    console.error("Falha ao enviar e-mail de orçamento pronto", id, error);
+  }
 
   return NextResponse.json({ pixUrl });
 }

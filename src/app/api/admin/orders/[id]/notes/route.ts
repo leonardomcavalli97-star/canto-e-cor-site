@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE_NAME, isValidSession } from "@/lib/adminAuth";
-import { updateOrderStatus } from "@/lib/orders";
-import { sendPaymentConfirmedEmail } from "@/lib/email";
+import { setOrderNotes } from "@/lib/orders";
 
 export async function POST(
-  _req: NextRequest,
-  ctx: RouteContext<"/api/admin/orders/[id]/mark-paid">
+  req: NextRequest,
+  ctx: RouteContext<"/api/admin/orders/[id]/notes">
 ) {
   const cookieStore = await cookies();
   const token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
@@ -16,11 +15,9 @@ export async function POST(
   }
 
   const { id } = await ctx.params;
-  const order = await updateOrderStatus(id, "paid");
-  try {
-    await sendPaymentConfirmedEmail(order.email, order.name);
-  } catch (error) {
-    console.error("Falha ao enviar e-mail de pagamento confirmado", id, error);
-  }
+  const body = await req.json();
+  const notes = typeof body.notes === "string" ? body.notes : "";
+
+  await setOrderNotes(id, notes);
   return NextResponse.json({ ok: true });
 }
