@@ -44,6 +44,14 @@ export default function Footer() {
             @cantoecoratelie
           </a>
         </div>
+
+        <div className="flex flex-col gap-2 text-sm">
+          <span className="mb-1 text-xs tracking-widest text-[#ebe9ca]/60 uppercase">
+            Legal
+          </span>
+          <Link href="/privacidade" className="hover:text-white">Política de Privacidade</Link>
+          <Link href="/termos" className="hover:text-white">Termos de Uso</Link>
+        </div>
       </div>
 
       <div className="flex flex-col items-center gap-3 border-t border-white/10 px-6 py-6 text-center text-xs text-[#ebe9ca]/60">
