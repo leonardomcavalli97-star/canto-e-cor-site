@@ -15,6 +15,7 @@ import {
 } from "@/lib/pricing";
 import { Button } from "@/components/Button";
 import {
+  ArrowRight,
   Image as ImageIcon,
   Lock,
   Mail,
@@ -133,6 +134,7 @@ export default function OrderForm() {
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
+  const [contactError, setContactError] = useState<string | null>(null);
 
   // Prazo de entrega (urgência).
   const [rushOption, setRushOptionValue] = useState("standard");
@@ -141,6 +143,7 @@ export default function OrderForm() {
   const [submitting, setSubmitting] = useState(false);
   const [uploadStage, setUploadStage] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -305,6 +308,18 @@ export default function OrderForm() {
     }
   }
 
+  function validateContactInfo(): string | null {
+    if (!formRef.current) return null;
+    const data = new FormData(formRef.current);
+    const name = String(data.get("name") ?? "").trim();
+    const email = String(data.get("email") ?? "").trim();
+    const phone = String(data.get("phone") ?? "").trim();
+    if (!name) return "Informe seu nome completo.";
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Informe um e-mail válido.";
+    if (phone.replace(/\D/g, "").length < 8) return "Informe um telefone válido.";
+    return null;
+  }
+
   function validateAddress(): string | null {
     if (cep.replace(/\D/g, "").length !== 8) return "Informe um CEP válido.";
     if (!street.trim()) return "Informe a rua/logradouro.";
@@ -458,12 +473,30 @@ export default function OrderForm() {
     }
   }
 
+  function handleBackStep() {
+    setStep(1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitError(null);
 
     const finalItems = computeFinalItems();
     if (!finalItems) return;
+
+    if (step === 1) {
+      setStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const contactErr = validateContactInfo();
+    if (contactErr) {
+      setContactError(contactErr);
+      return;
+    }
+    setContactError(null);
 
     const addressErr = validateAddress();
     if (addressErr) {
@@ -502,7 +535,7 @@ export default function OrderForm() {
     overallHasCustom ? null : cartSubtotal + currentSubtotal + shippingCents + rushCents;
 
   return (
-    <form ref={formRef} onSubmit={handleFormSubmit} className="mt-10">
+    <form ref={formRef} onSubmit={handleFormSubmit} noValidate className="mt-10">
       {draftRestored && (
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-accent/30 bg-accent/5 p-4 text-sm">
           <p className="text-foreground/80">
@@ -519,7 +552,11 @@ export default function OrderForm() {
         </div>
       )}
       <div className="grid gap-10 pb-28 lg:grid-cols-[1fr_320px] lg:items-start lg:pb-0">
-        <div className="space-y-12">
+        <div>
+          <div className={step === 1 ? "space-y-12" : "hidden"}>
+          <p className="mb-2 text-xs font-medium tracking-wide text-accent uppercase">
+            Etapa 1 de 2 · Sua encomenda
+          </p>
           {cartItems.length > 0 && (
             <p className="font-serif-display text-lg text-accent">
               Desenho {cartItems.length + 1}
@@ -797,6 +834,12 @@ export default function OrderForm() {
           {cartItems.length >= MAX_ITEMS && (
             <p className="mt-2 text-xs text-muted">Limite de {MAX_ITEMS} desenhos por pedido atingido.</p>
           )}
+          </div>
+
+          <div className={step === 2 ? "space-y-12" : "hidden"}>
+          <p className="mb-2 text-xs font-medium tracking-wide text-accent uppercase">
+            Etapa 2 de 2 · Finalizar pedido
+          </p>
 
           <fieldset>
             <legend className="flex items-baseline gap-3">
@@ -839,6 +882,7 @@ export default function OrderForm() {
                 />
               </div>
             </div>
+            {contactError && <p className="mt-2 text-sm text-accent">{contactError}</p>}
           </fieldset>
 
           <fieldset>
@@ -1061,6 +1105,7 @@ export default function OrderForm() {
               </div>
             </div>
           </fieldset>
+          </div>
 
         </div>
 
@@ -1167,17 +1212,32 @@ export default function OrderForm() {
 
             {submitError && <p className="mt-4 text-xs text-accent">{submitError}</p>}
 
-            <Button type="submit" disabled={submitting} className="mt-4 w-full">
-              {submitting ? (
-                (uploadStage ?? "Enviando...")
-              ) : overallHasCustom ? (
-                "Enviar pedido de orçamento"
-              ) : (
-                <>
-                  <QrCode size={18} /> Pagar com Pix
-                </>
-              )}
-            </Button>
+            {step === 1 ? (
+              <Button type="submit" className="mt-4 w-full">
+                Próximo <ArrowRight size={18} />
+              </Button>
+            ) : (
+              <>
+                <Button type="submit" disabled={submitting} className="mt-4 w-full">
+                  {submitting ? (
+                    (uploadStage ?? "Enviando...")
+                  ) : overallHasCustom ? (
+                    "Enviar pedido de orçamento"
+                  ) : (
+                    <>
+                      <QrCode size={18} /> Pagar com Pix
+                    </>
+                  )}
+                </Button>
+                <button
+                  type="button"
+                  onClick={handleBackStep}
+                  className="mt-2 w-full text-center text-xs text-muted underline hover:text-accent"
+                >
+                  Voltar
+                </button>
+              </>
+            )}
 
             <ul className="mt-6 space-y-2 border-t border-border pt-4 text-xs text-foreground/70">
               <li className="flex items-center gap-2">
@@ -1198,20 +1258,35 @@ export default function OrderForm() {
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-6 py-4 backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
           <div>
+            {step === 2 && (
+              <button
+                type="button"
+                onClick={handleBackStep}
+                className="mb-0.5 block text-[11px] text-muted underline"
+              >
+                Voltar
+              </button>
+            )}
             <p className="text-[11px] text-muted">{overallHasCustom ? "Valor" : "Total"}</p>
             <p className="font-serif-display text-lg text-accent">{formatPrice(grandTotal)}</p>
           </div>
-          <Button type="submit" disabled={submitting} className="flex-1 max-w-[220px]">
-            {submitting ? (
-              (uploadStage ?? "Enviando...")
-            ) : overallHasCustom ? (
-              "Enviar orçamento"
-            ) : (
-              <>
-                <QrCode size={16} /> Pagar com Pix
-              </>
-            )}
-          </Button>
+          {step === 1 ? (
+            <Button type="submit" className="flex-1 max-w-[220px]">
+              Próximo <ArrowRight size={16} />
+            </Button>
+          ) : (
+            <Button type="submit" disabled={submitting} className="flex-1 max-w-[220px]">
+              {submitting ? (
+                (uploadStage ?? "Enviando...")
+              ) : overallHasCustom ? (
+                "Enviar orçamento"
+              ) : (
+                <>
+                  <QrCode size={16} /> Pagar com Pix
+                </>
+              )}
+            </Button>
+          )}
         </div>
         {submitError && (
           <p className="mx-auto mt-2 max-w-3xl text-xs text-accent">{submitError}</p>
