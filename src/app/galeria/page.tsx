@@ -21,7 +21,7 @@ const PIECES = [
   { src: "/gallery/cachorro-anjo-2.webp", label: "Homenagem a um pet" },
   { src: "/gallery/pomerania.webp", label: "Pet" },
   { src: "/gallery/casal-florenca.webp", label: "Casal" },
-  { src: "/gallery/casal-quarto.webp", label: "Casal", wide: true },
+  { src: "/gallery/casal-quarto.webp", label: "Casal" },
 ];
 
 export default function GaleriaPage() {
@@ -35,13 +35,7 @@ export default function GaleriaPage() {
 
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {PIECES.map((piece) => (
-          <ArtworkCard
-            key={piece.src}
-            src={piece.src}
-            alt={piece.label}
-            className={piece.wide ? "sm:col-span-2 lg:col-span-3" : undefined}
-            aspectClassName={piece.wide ? "aspect-[16/9]" : undefined}
-          />
+          <ArtworkCard key={piece.src} src={piece.src} alt={piece.label} />
         ))}
       </div>
 

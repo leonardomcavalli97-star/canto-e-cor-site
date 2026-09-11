@@ -25,7 +25,7 @@ const THEMES = [
   {
     key: "casal",
     label: "Casal",
-    options: ["/gallery/casal-florenca.webp", "/gallery/casal-beijo.webp", "/gallery/casal-quarto.webp"],
+    options: ["/gallery/casal-florenca.webp", "/gallery/casal-beijo.webp"],
   },
   {
     key: "pet",

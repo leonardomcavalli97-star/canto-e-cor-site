@@ -5,18 +5,16 @@ export default function ArtworkCard({
   alt,
   label,
   className = "",
-  aspectClassName = "aspect-[3/4]",
   priority = false,
 }: {
   src: string;
   alt: string;
   label?: string;
   className?: string;
-  aspectClassName?: string;
   priority?: boolean;
 }) {
   return (
-    <div className={`relative ${aspectClassName} w-full overflow-hidden bg-surface ${className}`}>
+    <div className={`relative aspect-[3/4] w-full overflow-hidden bg-surface ${className}`}>
       <Image
         src={src}
         alt={alt}
