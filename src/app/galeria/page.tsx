@@ -16,6 +16,12 @@ const PIECES = [
   { src: "/gallery/jade.webp", label: "Jade" },
   { src: "/gallery/nina.webp", label: "Nina" },
   { src: "/gallery/cachorro-anjo.webp", label: "Homenagem a um pet" },
+  { src: "/gallery/casal-beijo.webp", label: "Casal" },
+  { src: "/gallery/jesus.webp", label: "Sagrado" },
+  { src: "/gallery/cachorro-anjo-2.webp", label: "Homenagem a um pet" },
+  { src: "/gallery/pomerania.webp", label: "Pet" },
+  { src: "/gallery/casal-quarto.webp", label: "Casal" },
+  { src: "/gallery/casal-florenca.webp", label: "Casal" },
 ];
 
 export default function GaleriaPage() {
