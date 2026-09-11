@@ -110,6 +110,8 @@ export async function POST(req: NextRequest) {
   }
 
   const rushOption = getRushOption(String(formData.get("rushOption") ?? "standard"));
+  const totalPieceCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const rushCents = rushOption.priceCents * Math.max(1, totalPieceCount);
 
   const hasCustomItem = items.some((item) => item.unitPriceCents === null);
   const shippingCents = isFreeShippingAddress(shippingAddress.city, shippingAddress.state)
@@ -118,7 +120,7 @@ export async function POST(req: NextRequest) {
   const itemsSubtotal = items.reduce((sum, item) => sum + (item.unitPriceCents ?? 0) * item.quantity, 0);
   const totalPriceCents = hasCustomItem
     ? null
-    : itemsSubtotal + shippingCents + rushOption.priceCents;
+    : itemsSubtotal + shippingCents + rushCents;
 
   const order = await createOrder({
     name,
@@ -129,7 +131,7 @@ export async function POST(req: NextRequest) {
     shippingCents,
     totalPriceCents,
     rushDays: rushOption.days,
-    rushCents: rushOption.priceCents,
+    rushCents,
     status: totalPriceCents === null ? "pending_quote" : "pix_pending",
   });
 

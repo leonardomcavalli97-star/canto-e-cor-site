@@ -340,13 +340,15 @@ export default function OrderForm() {
   const addressFilled = city.trim().length > 0 && state.trim().length > 0;
   const isFreeShipping = !addressFilled || isFreeShippingAddress(city, state);
   const shippingCents = isFreeShipping ? 0 : SHIPPING_FLAT_CENTS;
-  const rushCents = getRushOption(rushOption).priceCents;
-  const grandTotal =
-    overallHasCustom ? null : cartSubtotal + currentSubtotal + shippingCents + rushCents;
 
   const totalPieceCount =
     cartItems.reduce((n, item) => n + item.quantity, 0) + (willIncludeCurrent ? quantity : 0);
   const distinctDesignCount = cartItems.length + (willIncludeCurrent ? 1 : 0);
+
+  const rushCentsPerPiece = getRushOption(rushOption).priceCents;
+  const rushCents = rushCentsPerPiece * Math.max(1, totalPieceCount);
+  const grandTotal =
+    overallHasCustom ? null : cartSubtotal + currentSubtotal + shippingCents + rushCents;
 
   return (
     <form ref={formRef} onSubmit={handleFormSubmit} className="mt-10">
@@ -769,6 +771,7 @@ export default function OrderForm() {
             <div className="mt-4 space-y-2">
               {RUSH_OPTIONS.map((opt) => {
                 const selected = rushOption === opt.value;
+                const totalForOption = opt.priceCents * Math.max(1, totalPieceCount);
                 return (
                   <button
                     type="button"
@@ -780,13 +783,18 @@ export default function OrderForm() {
                     }`}
                   >
                     <span className="text-sm text-foreground">{opt.label}</span>
-                    <span className={opt.priceCents > 0 ? "text-accent" : "text-muted"}>
-                      {opt.priceCents > 0 ? `+ ${formatPrice(opt.priceCents)}` : "Grátis"}
+                    <span className={totalForOption > 0 ? "text-accent" : "text-muted"}>
+                      {totalForOption > 0 ? `+ ${formatPrice(totalForOption)}` : "Grátis"}
                     </span>
                   </button>
                 );
               })}
             </div>
+            {totalPieceCount > 1 && (
+              <p className="mt-2 text-xs text-muted">
+                Pedido com {totalPieceCount} peças — a taxa de prazo é cobrada por peça.
+              </p>
+            )}
           </fieldset>
 
         </div>
@@ -870,7 +878,10 @@ export default function OrderForm() {
               )}
               {!overallHasCustom && rushCents > 0 && (
                 <div className="mt-1 flex items-baseline justify-between text-sm text-foreground/70">
-                  <span>Prazo · {getRushOption(rushOption).label}</span>
+                  <span>
+                    Prazo · {getRushOption(rushOption).label}
+                    {totalPieceCount > 1 ? ` (× ${totalPieceCount})` : ""}
+                  </span>
                   <span>{formatPrice(rushCents)}</span>
                 </div>
               )}
