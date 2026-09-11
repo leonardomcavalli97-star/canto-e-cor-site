@@ -16,8 +16,8 @@ const PIECES = [
   { src: "/gallery/jesus.webp", label: "Sagrado" },
   { src: "/gallery/cachorro-anjo-2.webp", label: "Homenagem a um pet" },
   { src: "/gallery/pomerania.webp", label: "Pet" },
-  { src: "/gallery/casal-quarto.webp", label: "Casal" },
   { src: "/gallery/casal-florenca.webp", label: "Casal" },
+  { src: "/gallery/casal-quarto.webp", label: "Casal" },
 ];
 
 const INTERVAL_MS = 2500;

@@ -1,6 +1,7 @@
 import { LinkButton } from "@/components/Button";
 import ArtworkCard from "@/components/ArtworkCard";
 import Testimonials from "@/components/Testimonials";
+import ThemeShowcase from "@/components/ThemeShowcase";
 
 const STEPS = [
   {
@@ -21,10 +22,32 @@ const STEPS = [
 ];
 
 const THEMES = [
-  { key: "pet", label: "Pets", src: "/gallery/jade.webp" },
-  { key: "santos", label: "Santos", src: "/gallery/sao-jorge.webp" },
-  { key: "devocional", label: "Devocionais", src: "/gallery/nossa-senhora-oracao.webp" },
-  { key: "homenagem", label: "Homenagens", src: "/gallery/cachorro-anjo.webp" },
+  {
+    key: "casal",
+    label: "Casal",
+    options: ["/gallery/casal-florenca.webp", "/gallery/casal-beijo.webp", "/gallery/casal-quarto.webp"],
+  },
+  {
+    key: "pet",
+    label: "Pets",
+    options: ["/gallery/jade.webp", "/gallery/honey.webp", "/gallery/nina.webp", "/gallery/pomerania.webp"],
+  },
+  {
+    key: "santo",
+    label: "Santo / Devocional",
+    options: [
+      "/gallery/nossa-senhora-oracao.webp",
+      "/gallery/nossa-senhora-fatima.webp",
+      "/gallery/sao-jorge.webp",
+      "/gallery/sao-patricio.webp",
+      "/gallery/jesus.webp",
+    ],
+  },
+  {
+    key: "homenagem",
+    label: "Homenagens",
+    options: ["/gallery/cachorro-anjo.webp", "/gallery/cachorro-anjo-2.webp"],
+  },
 ];
 
 export default function Home() {
@@ -84,11 +107,7 @@ export default function Home() {
           Cada tema pede um olhar diferente — escolha o que mais combina com a sua
           encomenda.
         </p>
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {THEMES.map((theme) => (
-            <ArtworkCard key={theme.key} src={theme.src} alt={theme.label} label={theme.label} />
-          ))}
-        </div>
+        <ThemeShowcase themes={THEMES} />
       </section>
 
       <Testimonials />
