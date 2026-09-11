@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listOrders, deleteOrphanUploads, markReminderSent } from "@/lib/orders";
+import { listOrders, listAllOrders, deleteOrphanUploads, markReminderSent, purgeOldTrash } from "@/lib/orders";
 import { sendPaymentReminderEmail, sendAdminBackupEmail } from "@/lib/email";
 
 function csvCell(value: string) {
@@ -7,6 +7,7 @@ function csvCell(value: string) {
 }
 
 const REMINDER_AFTER_MS = 48 * 60 * 60 * 1000;
+const TRASH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -17,12 +18,18 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const results = { orphansDeleted: 0, remindersSent: 0, backupSent: false };
+  const results = { orphansDeleted: 0, trashPurged: 0, remindersSent: 0, backupSent: false };
 
   try {
     results.orphansDeleted = await deleteOrphanUploads();
   } catch (error) {
     console.error("Cron diário: falha ao limpar uploads órfãos", error);
+  }
+
+  try {
+    results.trashPurged = await purgeOldTrash(TRASH_MAX_AGE_MS);
+  } catch (error) {
+    console.error("Cron diário: falha ao esvaziar lixeira antiga", error);
   }
 
   let orders: Awaited<ReturnType<typeof listOrders>> = [];
@@ -51,10 +58,12 @@ export async function GET(req: NextRequest) {
   }
 
   // Backup semanal (só aos domingos) pra não mandar e-mail com anexo todo dia.
+  // Inclui pedidos na lixeira também — é o backup, nada deveria faltar nele.
   if (new Date().getDay() === 0) {
     const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
     if (adminEmail) {
       try {
+        const allOrders = await listAllOrders();
         const header = [
           "ID",
           "Data",
@@ -66,8 +75,9 @@ export async function GET(req: NextRequest) {
           "Cidade",
           "Estado",
           "Pago em",
+          "Excluído em",
         ];
-        const rows = orders.map((o) => [
+        const rows = allOrders.map((o) => [
           o.id,
           o.createdAt,
           o.status,
@@ -78,6 +88,7 @@ export async function GET(req: NextRequest) {
           o.shippingAddress.city,
           o.shippingAddress.state,
           o.paidAt ?? "",
+          o.deletedAt ?? "",
         ]);
         const csv = [header, ...rows].map((row) => row.map(csvCell).join(";")).join("\n");
         await sendAdminBackupEmail(

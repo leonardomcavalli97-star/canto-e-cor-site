@@ -50,6 +50,7 @@ export interface OrderRecord {
   rushCents: number;
   notes?: string;
   reminderSentAt?: string;
+  deletedAt?: string;
 }
 
 // Pedidos criados antes da mudança para múltiplos desenhos guardavam os
@@ -196,12 +197,13 @@ export async function markReminderSent(id: string) {
 /**
  * Apaga blobs em `uploads/` que não pertencem a nenhum pedido — sobras de
  * upload feito mas pedido nunca finalizado (carrinho abandonado, ou alguém
- * batendo direto no endpoint de upload). Só considera blobs com mais de
- * `minAgeMs` para não apagar um upload que está no meio de um pedido sendo
- * preenchido agora.
+ * batendo direto no endpoint de upload). Considera pedidos na lixeira também
+ * (senão as fotos de um pedido excluído "por engano" seriam apagadas antes
+ * de dar tempo de restaurar). Só considera blobs com mais de `minAgeMs` para
+ * não apagar um upload que está no meio de um pedido sendo preenchido agora.
  */
 export async function deleteOrphanUploads(minAgeMs = 48 * 60 * 60 * 1000) {
-  const [{ blobs }, orders] = await Promise.all([list({ prefix: "uploads/" }), listOrders()]);
+  const [{ blobs }, orders] = await Promise.all([list({ prefix: "uploads/" }), listAllOrders()]);
 
   const referenced = new Set(orders.flatMap((o) => o.items.flatMap((i) => i.referenceFiles)));
   const cutoff = Date.now() - minAgeMs;
@@ -217,7 +219,27 @@ export async function deleteOrphanUploads(minAgeMs = 48 * 60 * 60 * 1000) {
   return orphans.length;
 }
 
-export async function deleteOrder(id: string) {
+// "Excluir" move o pedido pra lixeira (soft delete) — as fotos e o registro
+// continuam existindo, só saem da lista principal. Só some de vez com
+// `permanentlyDeleteOrder` (manual, pela lixeira) ou `purgeOldTrash` (depois
+// de muito tempo na lixeira).
+export async function trashOrder(id: string) {
+  const raw = await readOrderJson(orderPathname(id));
+  if (!raw) throw new Error("Pedido não encontrado.");
+  const record = normalizeOrder(raw);
+  record.deletedAt = new Date().toISOString();
+  return writeOrder(record);
+}
+
+export async function restoreOrder(id: string) {
+  const raw = await readOrderJson(orderPathname(id));
+  if (!raw) throw new Error("Pedido não encontrado.");
+  const record = normalizeOrder(raw);
+  delete record.deletedAt;
+  return writeOrder(record);
+}
+
+export async function permanentlyDeleteOrder(id: string) {
   const raw = await readOrderJson(orderPathname(id));
   if (raw) {
     const record = normalizeOrder(raw);
@@ -231,6 +253,22 @@ export async function deleteOrder(id: string) {
   await del(orderPathname(id));
 }
 
+// Esvazia sozinha a lixeira depois de muito tempo, pra não acumular pra
+// sempre. Roda pela rotina diária (cron).
+export async function purgeOldTrash(maxAgeMs = 30 * 24 * 60 * 60 * 1000) {
+  const trashed = await listTrashedOrders();
+  const cutoff = Date.now() - maxAgeMs;
+  const toPurge = trashed.filter(
+    (o) => o.deletedAt && new Date(o.deletedAt).getTime() < cutoff
+  );
+
+  for (const order of toPurge) {
+    await permanentlyDeleteOrder(order.id).catch(() => {});
+  }
+
+  return toPurge.length;
+}
+
 export async function getOrder(id: string): Promise<OrderRecord | null> {
   try {
     const raw = await readOrderJson(orderPathname(id));
@@ -240,7 +278,7 @@ export async function getOrder(id: string): Promise<OrderRecord | null> {
   }
 }
 
-export async function listOrders(): Promise<OrderRecord[]> {
+async function readAllOrderRecords(): Promise<OrderRecord[]> {
   const { blobs } = await list({ prefix: "orders/" });
 
   const orders = await Promise.all(
@@ -254,7 +292,26 @@ export async function listOrders(): Promise<OrderRecord[]> {
     })
   );
 
-  return orders
-    .filter((o): o is OrderRecord => o !== null)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return orders.filter((o): o is OrderRecord => o !== null);
+}
+
+// Pedidos ativos (não excluídos) — é o que aparece na lista principal do
+// admin, nos e-mails de lembrete e no backup semanal.
+export async function listOrders(): Promise<OrderRecord[]> {
+  const all = await readAllOrderRecords();
+  return all.filter((o) => !o.deletedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function listTrashedOrders(): Promise<OrderRecord[]> {
+  const all = await readAllOrderRecords();
+  return all
+    .filter((o) => !!o.deletedAt)
+    .sort((a, b) => (b.deletedAt ?? "").localeCompare(a.deletedAt ?? ""));
+}
+
+// Ativos + lixeira juntos — usado internamente onde nada pode se perder
+// (checagem de fotos órfãs, backup completo).
+export async function listAllOrders(): Promise<OrderRecord[]> {
+  const all = await readAllOrderRecords();
+  return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }

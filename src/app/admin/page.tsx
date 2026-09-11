@@ -19,6 +19,8 @@ import {
   Phone,
   Printer,
   Search,
+  Archive,
+  RotateCcw,
   Trash2,
   Truck,
   X,
@@ -60,6 +62,7 @@ type Order = {
   rushDays: number | null;
   rushCents: number;
   notes?: string;
+  deletedAt?: string;
 };
 
 type Tone = "waiting" | "attention" | "progress" | "done" | "cancelled";
@@ -1089,6 +1092,77 @@ function shiftMonth(key: string, delta: number) {
   return monthKey(new Date(y, m - 1 + delta, 1));
 }
 
+function TrashPanel({
+  orders,
+  loading,
+  onRestore,
+  onPurge,
+}: {
+  orders: Order[];
+  loading: boolean;
+  onRestore: (id: string) => void;
+  onPurge: (id: string) => void;
+}) {
+  return (
+    <div className="mt-8">
+      <p className="text-sm text-muted">
+        Pedidos excluídos ficam aqui por 30 dias antes de serem apagados de vez — dá tempo de restaurar
+        se foi engano.
+      </p>
+
+      <div className="mt-4 border border-border bg-surface">
+        {loading ? (
+          <p className="p-8 text-center text-sm text-muted">Carregando...</p>
+        ) : orders.length === 0 ? (
+          <p className="p-8 text-center text-sm text-muted">A lixeira está vazia.</p>
+        ) : (
+          <ul>
+            {orders.map((order) => {
+              const meta =
+                STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
+              return (
+                <li
+                  key={order.id}
+                  className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 last:border-b-0"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-serif-display text-base text-foreground">{order.name}</p>
+                    <p className="truncate text-xs text-muted">
+                      {orderSummary(order)} · {formatPrice(order.totalPriceCents)}
+                    </p>
+                    <p className="mt-1 flex items-center gap-2">
+                      <StatusBadge label={meta.order} tone={meta.tone} />
+                      {order.deletedAt && (
+                        <span className="text-xs text-muted">Excluído em {formatDate(order.deletedAt)}</span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onRestore(order.id)}
+                      className="flex items-center gap-1.5 border border-accent px-3 py-1.5 text-xs tracking-wide text-accent uppercase hover:bg-accent hover:text-white"
+                    >
+                      <RotateCcw size={13} /> Restaurar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onPurge(order.id)}
+                      className="flex items-center gap-1.5 border border-border px-3 py-1.5 text-xs tracking-wide text-muted uppercase hover:border-accent hover:text-accent"
+                    >
+                      <Trash2 size={13} /> Excluir de vez
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MonthlyReport({ orders }: { orders: Order[] }) {
   const [month, setMonth] = useState(() => monthKey(new Date()));
 
@@ -1252,7 +1326,24 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [view, setView] = useState<"orders" | "report">("orders");
+  const [view, setView] = useState<"orders" | "report" | "trash">("orders");
+  const [trashedOrders, setTrashedOrders] = useState<Order[]>([]);
+  const [trashLoading, setTrashLoading] = useState(false);
+
+  async function loadTrash() {
+    setTrashLoading(true);
+    const res = await fetch("/api/admin/orders/trash");
+    if (res.ok) {
+      const data = await res.json();
+      setTrashedOrders(data.orders);
+    }
+    setTrashLoading(false);
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetches the trash list when the tab is opened
+    if (view === "trash") loadTrash();
+  }, [view]);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -1369,15 +1460,42 @@ export default function AdminPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Excluir este pedido definitivamente? Essa ação não pode ser desfeita.")) return;
+    if (!window.confirm("Mover este pedido para a lixeira? Você pode restaurar depois, na lixeira.")) return;
     setActionError(null);
     const res = await fetch(`/api/admin/orders/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      setActionError("Não foi possível excluir o pedido. Tente novamente.");
+      setActionError("Não foi possível mover o pedido para a lixeira. Tente novamente.");
       return;
     }
     setSelectedId((current) => (current === id ? null : current));
     loadOrders();
+  }
+
+  async function handleRestore(id: string) {
+    setActionError(null);
+    const res = await fetch(`/api/admin/orders/${id}/restore`, { method: "POST" });
+    if (!res.ok) {
+      setActionError("Não foi possível restaurar o pedido. Tente novamente.");
+      return;
+    }
+    loadTrash();
+    loadOrders();
+  }
+
+  async function handlePurge(id: string) {
+    if (
+      !window.confirm(
+        "Excluir este pedido definitivamente? Essa ação não pode ser desfeita — o pedido e as fotos serão apagados de vez."
+      )
+    )
+      return;
+    setActionError(null);
+    const res = await fetch(`/api/admin/orders/${id}/purge`, { method: "DELETE" });
+    if (!res.ok) {
+      setActionError("Não foi possível excluir o pedido definitivamente. Tente novamente.");
+      return;
+    }
+    loadTrash();
   }
 
   function toggleSelect(id: string) {
@@ -1542,15 +1660,30 @@ export default function AdminPage() {
             Gerencie pedidos, pagamentos, produção e entregas.
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setView(view === "orders" ? "report" : "orders")}
-            className="flex items-center gap-1.5 border border-accent px-3 py-1.5 text-xs tracking-wide text-accent uppercase hover:bg-accent hover:text-white"
+            className={`flex items-center gap-1.5 border px-3 py-1.5 text-xs tracking-wide uppercase ${
+              view === "report"
+                ? "border-accent bg-accent text-white"
+                : "border-accent text-accent hover:bg-accent hover:text-white"
+            }`}
           >
             <BarChart3 size={14} /> {view === "orders" ? "Relatório mensal" : "Ver pedidos"}
           </button>
-          <button type="button" onClick={handleLogout} className="text-xs text-foreground/60 underline">
+          <button
+            type="button"
+            onClick={() => setView(view === "trash" ? "orders" : "trash")}
+            className={`flex items-center gap-1.5 border px-3 py-1.5 text-xs tracking-wide uppercase ${
+              view === "trash"
+                ? "border-accent bg-accent text-white"
+                : "border-border text-foreground/70 hover:border-accent hover:text-accent"
+            }`}
+          >
+            <Archive size={14} /> {view === "trash" ? "Ver pedidos" : "Lixeira"}
+          </button>
+          <button type="button" onClick={handleLogout} className="ml-2 text-xs text-foreground/60 underline">
             Sair
           </button>
         </div>
@@ -1594,6 +1727,13 @@ export default function AdminPage() {
 
       {view === "report" ? (
         <MonthlyReport orders={orders} />
+      ) : view === "trash" ? (
+        <TrashPanel
+          orders={trashedOrders}
+          loading={trashLoading}
+          onRestore={handleRestore}
+          onPurge={handlePurge}
+        />
       ) : (
         <>
       <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
