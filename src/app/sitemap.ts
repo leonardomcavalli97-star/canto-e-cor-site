@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 const SITE_URL = "https://www.cantoecor.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const routes = ["", "/galeria", "/sobre", "/contato", "/pedido"];
+  const routes = ["", "/galeria", "/sobre", "/contato", "/pedido", "/pedido/status"];
 
   return routes.map((route) => ({
     url: `${SITE_URL}${route}`,

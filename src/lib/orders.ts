@@ -49,6 +49,7 @@ export interface OrderRecord {
   rushDays: number | null;
   rushCents: number;
   notes?: string;
+  reminderSentAt?: string;
 }
 
 // Pedidos criados antes da mudança para múltiplos desenhos guardavam os
@@ -182,6 +183,38 @@ export async function setOrderPaidAt(id: string, paidAt: string) {
   if (Number.isNaN(parsed.getTime())) throw new Error("Data inválida.");
   record.paidAt = parsed.toISOString();
   return writeOrder(record);
+}
+
+export async function markReminderSent(id: string) {
+  const raw = await readOrderJson(orderPathname(id));
+  if (!raw) return;
+  const record = normalizeOrder(raw);
+  record.reminderSentAt = new Date().toISOString();
+  await writeOrder(record);
+}
+
+/**
+ * Apaga blobs em `uploads/` que não pertencem a nenhum pedido — sobras de
+ * upload feito mas pedido nunca finalizado (carrinho abandonado, ou alguém
+ * batendo direto no endpoint de upload). Só considera blobs com mais de
+ * `minAgeMs` para não apagar um upload que está no meio de um pedido sendo
+ * preenchido agora.
+ */
+export async function deleteOrphanUploads(minAgeMs = 48 * 60 * 60 * 1000) {
+  const [{ blobs }, orders] = await Promise.all([list({ prefix: "uploads/" }), listOrders()]);
+
+  const referenced = new Set(orders.flatMap((o) => o.items.flatMap((i) => i.referenceFiles)));
+  const cutoff = Date.now() - minAgeMs;
+
+  const orphans = blobs.filter(
+    (b) => !referenced.has(b.pathname) && new Date(b.uploadedAt).getTime() < cutoff
+  );
+
+  if (orphans.length > 0) {
+    await del(orphans.map((b) => b.pathname));
+  }
+
+  return orphans.length;
 }
 
 export async function deleteOrder(id: string) {

@@ -10,6 +10,7 @@ import {
   THEME_OPTIONS as THEMES,
   isFreeShippingAddress,
   getRushOption,
+  multiplyRushCents,
   formatPrice,
   type PaperSize,
 } from "@/lib/pricing";
@@ -530,7 +531,7 @@ export default function OrderForm() {
   const distinctDesignCount = cartItems.length + (willIncludeCurrent ? 1 : 0);
 
   const rushCentsPerPiece = getRushOption(rushOption).priceCents;
-  const rushCents = rushCentsPerPiece * Math.max(1, totalPieceCount);
+  const rushCents = multiplyRushCents(rushCentsPerPiece, totalPieceCount);
   const grandTotal =
     overallHasCustom ? null : cartSubtotal + currentSubtotal + shippingCents + rushCents;
 
@@ -994,7 +995,7 @@ export default function OrderForm() {
             <div className="mt-4 space-y-2">
               {RUSH_OPTIONS.map((opt) => {
                 const selected = rushOption === opt.value;
-                const totalForOption = opt.priceCents * Math.max(1, totalPieceCount);
+                const totalForOption = multiplyRushCents(opt.priceCents, totalPieceCount);
                 return (
                   <button
                     type="button"

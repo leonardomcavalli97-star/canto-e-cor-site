@@ -51,6 +51,13 @@ export function getRushOption(value: string) {
   return RUSH_OPTIONS.find((o) => o.value === value) ?? RUSH_OPTIONS[0];
 }
 
+// A taxa de prazo expresso é por peça: um pedido com N peças no mesmo
+// prazo custa N vezes a taxa de uma peça só, porque cada peça extra
+// exige o mesmo trabalho sob o mesmo aperto de tempo.
+export function multiplyRushCents(priceCentsPerPiece: number, totalPieceCount: number) {
+  return priceCentsPerPiece * Math.max(1, totalPieceCount);
+}
+
 export const SHIPPING_FLAT_CENTS = 2500;
 const FREE_SHIPPING_CITY = "campo grande";
 const FREE_SHIPPING_STATE = "ms";

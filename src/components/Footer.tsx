@@ -27,6 +27,7 @@ export default function Footer() {
           <Link href="/galeria" className="hover:text-white">Galeria</Link>
           <Link href="/sobre" className="hover:text-white">Sobre o ateliê</Link>
           <Link href="/pedido" className="hover:text-white">Fazer encomenda</Link>
+          <Link href="/pedido/status" className="hover:text-white">Acompanhar pedido</Link>
           <Link href="/contato" className="hover:text-white">Contato</Link>
         </div>
 

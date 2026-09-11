@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createOrder, type OrderItem, type OrderTheme, type ShippingAddress } from "@/lib/orders";
-import { PAPER_SIZES, SHIPPING_FLAT_CENTS, isFreeShippingAddress, getRushOption, type PaperSize } from "@/lib/pricing";
-import { sendNewOrderNotificationEmail } from "@/lib/email";
+import {
+  PAPER_SIZES,
+  SHIPPING_FLAT_CENTS,
+  isFreeShippingAddress,
+  getRushOption,
+  multiplyRushCents,
+  type PaperSize,
+} from "@/lib/pricing";
+import { sendNewOrderNotificationEmail, sendOrderReceivedEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/rateLimit";
 
 const MAX_FILES = 5;
@@ -136,7 +143,7 @@ export async function POST(req: NextRequest) {
 
     const rushOption = getRushOption(String(formData.get("rushOption") ?? "standard"));
     const totalPieceCount = items.reduce((sum, item) => sum + item.quantity, 0);
-    const rushCents = rushOption.priceCents * Math.max(1, totalPieceCount);
+    const rushCents = multiplyRushCents(rushOption.priceCents, totalPieceCount);
 
     const hasCustomItem = items.some((item) => item.unitPriceCents === null);
     const shippingCents = isFreeShippingAddress(shippingAddress.city, shippingAddress.state)
@@ -162,6 +169,13 @@ export async function POST(req: NextRequest) {
       await sendNewOrderNotificationEmail(name);
     } catch (error) {
       console.error("Falha ao enviar e-mail de notificação de novo pedido", order.id, error);
+    }
+
+    try {
+      const statusUrl = `${req.nextUrl.origin}/pedido/status/${order.id}`;
+      await sendOrderReceivedEmail(email, name, statusUrl);
+    } catch (error) {
+      console.error("Falha ao enviar e-mail de pedido recebido", order.id, error);
     }
 
     if (totalPriceCents === null) {

@@ -16,6 +16,7 @@ import {
   MapPin,
   MoreHorizontal,
   Phone,
+  Printer,
   Search,
   Trash2,
   Truck,
@@ -577,6 +578,7 @@ function OrderDetailPanel({
 }) {
   const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
   const hasAddress = !!order.shippingAddress?.cep;
+  const [showLabel, setShowLabel] = useState(false);
   const rushDeadline = getRushDeadline(order);
   const urgency = rushUrgency(rushDeadline, now);
 
@@ -734,6 +736,15 @@ function OrderDetailPanel({
         <NotesEditor orderId={order.id} initialNotes={order.notes ?? ""} />
 
         <div className="mt-8 flex flex-wrap gap-2 border-t border-border pt-6">
+          {hasAddress && (
+            <button
+              type="button"
+              onClick={() => setShowLabel(true)}
+              className="flex items-center gap-2 border border-border px-4 py-2 text-xs tracking-wide text-foreground/70 uppercase hover:border-accent hover:text-accent"
+            >
+              <Printer size={14} /> Imprimir etiqueta
+            </button>
+          )}
           {(order.status === "pix_pending" || order.status === "pending_payment") && (
             <button
               type="button"
@@ -770,6 +781,7 @@ function OrderDetailPanel({
           </button>
         </div>
       </div>
+      {showLabel && <PrintLabelModal order={order} onClose={() => setShowLabel(false)} />}
     </div>
   );
 }
@@ -783,6 +795,8 @@ type RowProps = {
   onMarkShipped: (id: string) => void;
   onCancel: (id: string) => void;
   onDelete: (id: string) => void;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
 };
 
 function RushIndicator({ order, now }: { order: Order; now: number }) {
@@ -799,11 +813,31 @@ function RushIndicator({ order, now }: { order: Order; now: number }) {
   );
 }
 
-function DesktopOrderRow({ order, now, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel, onDelete }: RowProps) {
+function DesktopOrderRow({
+  order,
+  now,
+  onOpenDetails,
+  onOpenImage,
+  onMarkPaid,
+  onMarkShipped,
+  onCancel,
+  onDelete,
+  selected,
+  onToggleSelect,
+}: RowProps) {
   const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
 
   return (
     <tr onClick={onOpenDetails} className="cursor-pointer border-b border-border last:border-b-0 hover:bg-surface/60">
+      <td className="px-3 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(order.id)}
+          aria-label={`Selecionar pedido de ${order.name}`}
+          className="h-4 w-4 accent-accent"
+        />
+      </td>
       <td className="min-w-0 px-4 py-3 align-middle">
         <p className="truncate font-serif-display text-base text-foreground">{order.name}</p>
         <p className="truncate text-xs text-muted">{order.phone || order.email}</p>
@@ -856,7 +890,18 @@ function DesktopOrderRow({ order, now, onOpenDetails, onOpenImage, onMarkPaid, o
   );
 }
 
-function MobileOrderCard({ order, now, onOpenDetails, onOpenImage, onMarkPaid, onMarkShipped, onCancel, onDelete }: RowProps) {
+function MobileOrderCard({
+  order,
+  now,
+  onOpenDetails,
+  onOpenImage,
+  onMarkPaid,
+  onMarkShipped,
+  onCancel,
+  onDelete,
+  selected,
+  onToggleSelect,
+}: RowProps) {
   const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
 
   return (
@@ -865,9 +910,19 @@ function MobileOrderCard({ order, now, onOpenDetails, onOpenImage, onMarkPaid, o
       className="flex cursor-pointer flex-col gap-2 border-b border-border p-4 last:border-b-0 hover:bg-surface/60"
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate font-serif-display text-base text-foreground">{order.name}</p>
-          <p className="truncate text-xs text-muted">{order.phone || order.email}</p>
+        <div className="flex min-w-0 items-start gap-2">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect(order.id)}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Selecionar pedido de ${order.name}`}
+            className="mt-1 h-4 w-4 shrink-0 accent-accent"
+          />
+          <div className="min-w-0">
+            <p className="truncate font-serif-display text-base text-foreground">{order.name}</p>
+            <p className="truncate text-xs text-muted">{order.phone || order.email}</p>
+          </div>
         </div>
         <div onClick={(e) => e.stopPropagation()}>
           <ActionsMenu
@@ -928,6 +983,68 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
         alt=""
         className="relative max-h-full max-w-full border-4 border-background object-contain"
       />
+    </div>
+  );
+}
+
+function PrintLabelModal({ order, onClose }: { order: Order; onClose: () => void }) {
+  const addr = order.shippingAddress;
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-foreground/50 p-6 print:static print:bg-white print:p-0">
+      <div className="absolute inset-0 print:hidden" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-background p-6 print:max-w-none print:p-0">
+        <div className="mb-4 flex items-center justify-between print:hidden">
+          <p className="font-serif-display text-lg text-foreground">Etiqueta de envio</p>
+          <button type="button" onClick={onClose} aria-label="Fechar" className="text-foreground/60 hover:text-foreground">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div id="shipping-label" className="border-2 border-foreground p-6 text-sm text-foreground">
+          <p className="text-xs tracking-wide text-muted uppercase">Canto e Cor Ateliê</p>
+          <p className="mt-1 text-xs text-muted">Pedido #{order.id.slice(0, 8)} · {formatDate(order.createdAt)}</p>
+          <div className="mt-4 border-t border-foreground/20 pt-4">
+            <p className="text-xs tracking-wide text-muted uppercase">Destinatário</p>
+            <p className="mt-1 font-serif-display text-lg">{order.name}</p>
+            <p className="mt-1">
+              {addr.street}, {addr.number}
+              {addr.complement ? ` - ${addr.complement}` : ""}
+            </p>
+            <p>{addr.neighborhood}</p>
+            <p>
+              {addr.city} - {addr.state}
+            </p>
+            <p>CEP {addr.cep}</p>
+            <p className="mt-1 text-foreground/70">{order.phone}</p>
+          </div>
+          <div className="mt-4 border-t border-foreground/20 pt-4 text-foreground/80">
+            <p className="text-xs tracking-wide text-muted uppercase">Conteúdo</p>
+            <p className="mt-1">{orderSummary(order)}</p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="mt-4 flex w-full items-center justify-center gap-2 bg-accent px-4 py-2.5 text-xs tracking-wide text-white uppercase hover:bg-accent-dark print:hidden"
+        >
+          <Printer size={14} /> Imprimir
+        </button>
+      </div>
+
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #shipping-label, #shipping-label * { visibility: visible; }
+          #shipping-label {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -1119,6 +1236,8 @@ export default function AdminPage() {
   const [sortBy, setSortBy] = useState("recent");
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkWorking, setBulkWorking] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [actionError, setActionError] = useState<string | null>(null);
@@ -1233,6 +1352,59 @@ export default function AdminPage() {
       return;
     }
     setSelectedId((current) => (current === id ? null : current));
+    loadOrders();
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  async function handleBulkMarkPaid() {
+    const ids = Array.from(selectedIds).filter((id) => {
+      const order = orders.find((o) => o.id === id);
+      return order && (order.status === "pix_pending" || order.status === "pending_payment");
+    });
+    if (ids.length === 0) return;
+    if (!window.confirm(`Marcar ${ids.length} pedido(s) como pago?`)) return;
+    setActionError(null);
+    setBulkWorking(true);
+    const results = await Promise.all(
+      ids.map((id) => fetch(`/api/admin/orders/${id}/mark-paid`, { method: "POST" }))
+    );
+    setBulkWorking(false);
+    if (results.some((r) => !r.ok)) {
+      setActionError("Alguns pedidos não puderam ser marcados como pago. Confira a lista e tente de novo.");
+    }
+    clearSelection();
+    loadOrders();
+  }
+
+  async function handleBulkCancel() {
+    const ids = Array.from(selectedIds).filter((id) => {
+      const order = orders.find((o) => o.id === id);
+      return order && order.status !== "cancelled" && order.status !== "shipped";
+    });
+    if (ids.length === 0) return;
+    if (!window.confirm(`Cancelar ${ids.length} pedido(s)?`)) return;
+    setActionError(null);
+    setBulkWorking(true);
+    const results = await Promise.all(
+      ids.map((id) => fetch(`/api/admin/orders/${id}/cancel`, { method: "POST" }))
+    );
+    setBulkWorking(false);
+    if (results.some((r) => !r.ok)) {
+      setActionError("Alguns pedidos não puderam ser cancelados. Confira a lista e tente de novo.");
+    }
+    clearSelection();
     loadOrders();
   }
 
@@ -1511,6 +1683,35 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 border border-accent/40 bg-accent/5 p-3 text-sm">
+          <span className="text-foreground/80">{selectedIds.size} selecionado(s)</span>
+          <button
+            type="button"
+            disabled={bulkWorking}
+            onClick={handleBulkMarkPaid}
+            className="border border-accent px-3 py-1.5 text-xs tracking-wide text-accent uppercase hover:bg-accent hover:text-white disabled:opacity-50"
+          >
+            Marcar como pago
+          </button>
+          <button
+            type="button"
+            disabled={bulkWorking}
+            onClick={handleBulkCancel}
+            className="border border-border px-3 py-1.5 text-xs tracking-wide text-muted uppercase hover:border-accent hover:text-accent disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={clearSelection}
+            className="text-xs text-muted underline"
+          >
+            Limpar seleção
+          </button>
+        </div>
+      )}
+
       <div className="mt-4 border border-border bg-surface">
         {filtered.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted">Nenhum pedido encontrado.</p>
@@ -1518,16 +1719,32 @@ export default function AdminPage() {
           <>
             <table className="hidden w-full table-fixed border-collapse lg:table">
               <colgroup>
+                <col className="w-[36px]" />
+                <col className="w-[23%]" />
                 <col className="w-[24%]" />
-                <col className="w-[25%]" />
+                <col className="w-[10%]" />
                 <col className="w-[11%]" />
                 <col className="w-[12%]" />
-                <col className="w-[13%]" />
-                <col className="w-[15%]" />
+                <col className="w-[14%]" />
                 <col className="w-[150px]" />
               </colgroup>
               <thead>
                 <tr className="border-b border-border bg-background/60 text-[11px] font-medium tracking-wide text-muted uppercase">
+                  <th className="px-3 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id))}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedIds(new Set(filtered.map((o) => o.id)));
+                        } else {
+                          clearSelection();
+                        }
+                      }}
+                      aria-label="Selecionar todos os pedidos visíveis"
+                      className="h-4 w-4 accent-accent"
+                    />
+                  </th>
                   <th className="px-4 py-2.5 text-left font-medium">Cliente</th>
                   <th className="px-4 py-2.5 text-left font-medium">Pedido</th>
                   <th className="px-4 py-2.5 text-left font-medium">Data</th>
@@ -1549,6 +1766,8 @@ export default function AdminPage() {
                     onMarkShipped={handleMarkShipped}
                     onCancel={handleCancel}
                     onDelete={handleDelete}
+                    selected={selectedIds.has(order.id)}
+                    onToggleSelect={toggleSelect}
                   />
                 ))}
               </tbody>
@@ -1566,6 +1785,8 @@ export default function AdminPage() {
                   onMarkShipped={handleMarkShipped}
                   onCancel={handleCancel}
                   onDelete={handleDelete}
+                  selected={selectedIds.has(order.id)}
+                  onToggleSelect={toggleSelect}
                 />
               ))}
             </ul>

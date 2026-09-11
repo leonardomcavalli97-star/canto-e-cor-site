@@ -99,6 +99,77 @@ export async function sendNewOrderNotificationEmail(orderName: string) {
   });
 }
 
+export async function sendOrderReceivedEmail(to: string, name: string, statusUrl: string) {
+  const resend = getResend();
+  if (!resend) return;
+
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: "Recebemos seu pedido! · Canto e Cor",
+    html: `
+      <div style="font-family: Georgia, serif; color: #3a2a2a; max-width: 480px; margin: 0 auto;">
+        <p style="font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #a15c5c;">Canto e Cor</p>
+        <h1 style="font-size: 24px; margin: 8px 0 16px;">Recebemos seu pedido!</h1>
+        <p>Olá, ${escapeHtml(name)}!</p>
+        <p>Seu pedido chegou até nós. Guarde este e-mail — você pode acompanhar o status por aqui, quando quiser:</p>
+        <p>
+          <a href="${statusUrl}" style="color: #a15c5c;">Acompanhar meu pedido</a>
+        </p>
+        <p style="margin-top: 24px;">Com carinho,<br />Canto e Cor</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPaymentReminderEmail(to: string, name: string, pixUrl: string) {
+  const resend = getResend();
+  if (!resend) return;
+
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: "Seu Pix ainda está pendente · Canto e Cor",
+    html: `
+      <div style="font-family: Georgia, serif; color: #3a2a2a; max-width: 480px; margin: 0 auto;">
+        <p style="font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #a15c5c;">Canto e Cor</p>
+        <h1 style="font-size: 24px; margin: 8px 0 16px;">Ainda esperamos seu Pix</h1>
+        <p>Olá, ${escapeHtml(name)}!</p>
+        <p>Notamos que o pagamento do seu pedido ainda não foi feito. Se você já pagou, pode ignorar este e-mail — a confirmação é manual e pode levar até 24h.</p>
+        <p>Se ainda não pagou, o código Pix continua disponível aqui:</p>
+        <p>
+          <a href="${pixUrl}" style="color: #a15c5c;">Ver meu Pix</a>
+        </p>
+        <p style="margin-top: 24px;">Com carinho,<br />Canto e Cor</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendAdminBackupEmail(to: string, csv: string, filename: string) {
+  const resend = getResend();
+  if (!resend) return;
+
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `Backup semanal de pedidos · Canto e Cor`,
+    html: `
+      <div style="font-family: Georgia, serif; color: #3a2a2a; max-width: 480px; margin: 0 auto;">
+        <p style="font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #a15c5c;">Canto e Cor</p>
+        <h1 style="font-size: 24px; margin: 8px 0 16px;">Backup semanal</h1>
+        <p>Segue em anexo uma cópia de todos os pedidos, em planilha (CSV), como backup.</p>
+      </div>
+    `,
+    attachments: [
+      {
+        filename,
+        content: Buffer.from(csv, "utf-8"),
+      },
+    ],
+  });
+}
+
 export async function sendOrderShippedEmail(to: string, name: string) {
   const resend = getResend();
   if (!resend) return;
