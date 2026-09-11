@@ -7,13 +7,13 @@ export const PAPER_SIZES: Record<
   A5: {
     label: "A5",
     dimensions: "14,8 x 21 cm",
-    priceCents: 15000,
+    priceCents: 18000,
     description: "Ideal para desenhos delicados e versáteis, ótima opção para presentes e retratos.",
   },
   A4: {
     label: "A4",
     dimensions: "21 x 29,7 cm",
-    priceCents: 18000,
+    priceCents: 21000,
     description: "Ideal para desenhos com riquezas de detalhes, ótima opção para quadros e decoração.",
   },
   personalizado: {
