@@ -30,6 +30,56 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_QUANTITY = 10;
 const MAX_ITEMS = 10;
 
+const DRAFT_KEY = "cantoecor:pedido-draft";
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+type Draft = {
+  v: 1;
+  savedAt: number;
+  paperSize: PaperSize;
+  theme: string;
+  themeOther: string;
+  customSize: string;
+  quantity: number;
+  description: string;
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  rushOption: string;
+};
+
+function draftHasContent(draft: Draft) {
+  return (
+    draft.description.trim().length > 0 ||
+    draft.customSize.trim().length > 0 ||
+    draft.themeOther.trim().length > 0 ||
+    draft.quantity > 1 ||
+    draft.paperSize !== "A4" ||
+    draft.theme !== "casal" ||
+    draft.rushOption !== "standard" ||
+    [draft.cep, draft.street, draft.number, draft.neighborhood, draft.city, draft.state].some(
+      (v) => v.trim().length > 0
+    )
+  );
+}
+
+function readDraft(): Draft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const draft = JSON.parse(raw) as Draft;
+    if (draft.v !== 1 || Date.now() - draft.savedAt > DRAFT_MAX_AGE_MS) return null;
+    if (!draftHasContent(draft)) return null;
+    return draft;
+  } catch {
+    return null;
+  }
+}
+
 type CartItem = {
   paperSize: PaperSize;
   theme: string;
@@ -90,8 +140,94 @@ export default function OrderForm() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploadStage, setUploadStage] = useState<string | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Restaura um rascunho salvo (se houver) assim que o formulário monta.
+  // As fotos em si não sobrevivem a um recarregamento de página — isso é uma
+  // limitação do navegador, não algo que dê pra contornar no código — então só
+  // o texto/seleções voltam, e avisamos a pessoa disso.
+  useEffect(() => {
+    const draft = readDraft();
+    if (!draft) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore from localStorage on mount
+    setPaperSize(draft.paperSize);
+    setTheme(draft.theme);
+    setThemeOther(draft.themeOther);
+    setCustomSize(draft.customSize);
+    setQuantity(draft.quantity);
+    setDescription(draft.description);
+    setCep(draft.cep);
+    setStreet(draft.street);
+    setNumber(draft.number);
+    setComplement(draft.complement);
+    setNeighborhood(draft.neighborhood);
+    setCity(draft.city);
+    setState(draft.state);
+    setRushOptionValue(draft.rushOption);
+    setDraftRestored(true);
+  }, []);
+
+  useEffect(() => {
+    const draft: Draft = {
+      v: 1,
+      savedAt: Date.now(),
+      paperSize,
+      theme,
+      themeOther,
+      customSize,
+      quantity,
+      description,
+      cep,
+      street,
+      number,
+      complement,
+      neighborhood,
+      city,
+      state,
+      rushOption,
+    };
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      // localStorage indisponível (modo privado etc.) — não é crítico, apenas
+      // não persiste o rascunho.
+    }
+  }, [
+    paperSize,
+    theme,
+    themeOther,
+    customSize,
+    quantity,
+    description,
+    cep,
+    street,
+    number,
+    complement,
+    neighborhood,
+    city,
+    state,
+    rushOption,
+  ]);
+
+  function discardDraft() {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // ignora
+    }
+    resetCurrentItem();
+    setCep("");
+    setStreet("");
+    setNumber("");
+    setComplement("");
+    setNeighborhood("");
+    setCity("");
+    setState("");
+    setRushOptionValue("standard");
+    setDraftRestored(false);
+  }
 
   const previews = useMemo(
     () => files.map((file) => URL.createObjectURL(file)),
@@ -295,11 +431,21 @@ export default function OrderForm() {
       }
 
       if (data.quotePending) {
+        try {
+          localStorage.removeItem(DRAFT_KEY);
+        } catch {
+          // ignora
+        }
         router.push(`/pedido-recebido?order_id=${data.orderId}`);
         return;
       }
 
       if (data.pixPending) {
+        try {
+          localStorage.removeItem(DRAFT_KEY);
+        } catch {
+          // ignora
+        }
         router.push(`/pedido-pix?order_id=${data.orderId}`);
         return;
       }
@@ -357,6 +503,21 @@ export default function OrderForm() {
 
   return (
     <form ref={formRef} onSubmit={handleFormSubmit} className="mt-10">
+      {draftRestored && (
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-accent/30 bg-accent/5 p-4 text-sm">
+          <p className="text-foreground/80">
+            Recuperamos o que você tinha preenchido antes. Só as fotos precisam ser adicionadas de novo —
+            isso o navegador não deixa recuperar sozinho.
+          </p>
+          <button
+            type="button"
+            onClick={discardDraft}
+            className="shrink-0 text-xs text-muted underline hover:text-accent"
+          >
+            Começar do zero
+          </button>
+        </div>
+      )}
       <div className="grid gap-10 pb-28 lg:grid-cols-[1fr_320px] lg:items-start lg:pb-0">
         <div className="space-y-12">
           {cartItems.length > 0 && (
@@ -810,9 +971,95 @@ export default function OrderForm() {
             </div>
             {totalPieceCount > 1 && (
               <p className="mt-2 text-xs text-muted">
-                Pedido com {totalPieceCount} peças — a taxa de prazo é cobrada por peça.
+                Pedido com {totalPieceCount} peças — a taxa de prazo é cobrada por peça
+                {rushCentsPerPiece > 0 && (
+                  <>
+                    {" "}
+                    ({formatPrice(rushCentsPerPiece)} × {totalPieceCount} ={" "}
+                    {formatPrice(rushCentsPerPiece * totalPieceCount)})
+                  </>
+                )}
+                .
               </p>
             )}
+          </fieldset>
+
+          <fieldset>
+            <legend className="flex items-baseline gap-3">
+              <span className="font-serif-display text-3xl text-accent/40">08</span>
+              <span className="font-serif-display text-xl text-foreground">Revise seu pedido</span>
+            </legend>
+            <div className="mt-4 space-y-4 border border-border bg-surface p-5 text-sm">
+              <div>
+                <p className="text-xs font-medium tracking-wide text-muted uppercase">
+                  {distinctDesignCount > 1 ? "Desenhos" : "Desenho"}
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {cartItems.map((item, i) => (
+                    <li key={i} className="flex items-baseline justify-between gap-3 text-foreground/80">
+                      <span>
+                        {PAPER_SIZES[item.paperSize].label} ·{" "}
+                        {THEMES.find((t) => t.value === item.theme)?.label ?? item.theme} · Qtd{" "}
+                        {item.quantity}
+                      </span>
+                      <span className="shrink-0 text-accent">
+                        {formatPrice(
+                          itemUnitPrice(item) === null ? null : itemUnitPrice(item)! * item.quantity
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                  {willIncludeCurrent && (
+                    <li className="flex items-baseline justify-between gap-3 text-foreground/80">
+                      <span>
+                        {isCustomSize ? "Sob medida" : PAPER_SIZES[paperSize].label} · {themeLabel} · Qtd{" "}
+                        {quantity}
+                      </span>
+                      <span className="shrink-0 text-accent">
+                        {formatPrice(currentUnitPrice === null ? null : currentUnitPrice * quantity)}
+                      </span>
+                    </li>
+                  )}
+                </ul>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium tracking-wide text-muted uppercase">Entrega</p>
+                {addressFilled ? (
+                  <p className="mt-1 text-foreground/80">
+                    {street || "—"}, {number || "—"}
+                    {complement ? ` - ${complement}` : ""}
+                    <br />
+                    {neighborhood ? `${neighborhood} · ` : ""}
+                    {city} - {state}
+                    {cep ? ` · CEP ${cep}` : ""}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-muted">Preencha o endereço acima para conferir aqui.</p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-xs font-medium tracking-wide text-muted uppercase">Prazo escolhido</p>
+                <p className="mt-1 text-foreground/80">{getRushOption(rushOption).label}</p>
+              </div>
+
+              <div className="border-t border-border pt-3 text-xs text-foreground/70">
+                {overallHasCustom ? (
+                  <p>
+                    <strong className="text-accent">Como funciona:</strong> como esse pedido tem um item sob
+                    medida, você não paga agora — enviamos um orçamento por e-mail antes de qualquer
+                    cobrança.
+                  </p>
+                ) : (
+                  <p>
+                    <strong className="text-accent">Como funciona o pagamento:</strong> ao confirmar, você
+                    paga com Pix. A confirmação é manual e pode levar até 24h — você recebe um e-mail assim
+                    que o pagamento for confirmado.
+                  </p>
+                )}
+              </div>
+            </div>
           </fieldset>
 
         </div>
@@ -895,12 +1142,16 @@ export default function OrderForm() {
                 </div>
               )}
               {!overallHasCustom && rushCents > 0 && (
-                <div className="mt-1 flex items-baseline justify-between text-sm text-foreground/70">
-                  <span>
-                    Prazo · {getRushOption(rushOption).label}
-                    {totalPieceCount > 1 ? ` (× ${totalPieceCount})` : ""}
-                  </span>
-                  <span>{formatPrice(rushCents)}</span>
+                <div className="mt-1">
+                  <div className="flex items-baseline justify-between text-sm text-foreground/70">
+                    <span>Prazo · {getRushOption(rushOption).label}</span>
+                    <span>{formatPrice(rushCents)}</span>
+                  </div>
+                  {totalPieceCount > 1 && (
+                    <p className="text-right text-[11px] text-muted">
+                      {formatPrice(rushCentsPerPiece)} × {totalPieceCount} peças
+                    </p>
+                  )}
                 </div>
               )}
               <div className={`flex items-baseline justify-between ${!overallHasCustom ? "mt-2" : ""}`}>
