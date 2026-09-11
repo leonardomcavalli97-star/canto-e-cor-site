@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { buildPix } from "./pix";
 
 describe("buildPix", () => {
+  beforeAll(() => {
+    process.env.PIX_KEY = "+5511999999999";
+  });
+
   it("generates a BR Code (EMV QR) string carrying the merchant and amount", async () => {
     const { brCode } = await buildPix({ amountCents: 21000, txid: "abc123" });
     expect(typeof brCode).toBe("string");

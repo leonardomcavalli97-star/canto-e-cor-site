@@ -10,10 +10,12 @@ export async function buildPix({
   amountCents: number;
   txid: string;
 }) {
-  // Fallback mantém o site funcionando caso PIX_KEY ainda não tenha sido
-  // configurada na Vercel — defina a variável de ambiente para trocar a chave
-  // sem precisar editar código.
-  const pixKey = process.env.PIX_KEY || "+5567998891606";
+  const pixKey = process.env.PIX_KEY;
+  if (!pixKey) {
+    throw new Error(
+      "PIX_KEY não configurada — defina a variável de ambiente na Vercel antes de gerar cobranças."
+    );
+  }
 
   const pix = createStaticPix({
     merchantName: PIX_MERCHANT_NAME,

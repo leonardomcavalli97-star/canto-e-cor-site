@@ -39,9 +39,9 @@ Abra [http://localhost:3000](http://localhost:3000).
 sem depender de nenhuma conta/API externa — não é possível confirmar pagamento
 automaticamente, a confirmação é sempre manual pelo admin.
 
-A chave Pix vem da variável de ambiente `PIX_KEY` (veja `.env.example`); se não
-estiver configurada, `src/lib/pix.ts` usa a chave da Lívia como padrão. Nome e cidade
-do titular ficam fixos em `PIX_MERCHANT_NAME`/`PIX_MERCHANT_CITY`, no mesmo arquivo.
+A chave Pix vem da variável de ambiente `PIX_KEY` (veja `.env.example`) — é
+obrigatória, sem ela o site não gera cobranças. Nome e cidade do titular ficam
+fixos em `PIX_MERCHANT_NAME`/`PIX_MERCHANT_CITY`, em `src/lib/pix.ts`.
 
 ## Onde ficam os pedidos
 
@@ -56,8 +56,8 @@ configurada, os e-mails simplesmente não saem (sem erro visível), então confi
 ## Env vars necessárias
 
 Veja `.env.example`: `ADMIN_PASSWORD`, `ADMIN_NOTIFICATION_EMAIL`, `RESEND_API_KEY`,
-`BLOB_READ_WRITE_TOKEN` (gerada automaticamente ao conectar um Blob Store na Vercel) e,
-opcionalmente, `PIX_KEY`.
+`BLOB_READ_WRITE_TOKEN` (gerada automaticamente ao conectar um Blob Store na Vercel) e
+`PIX_KEY`.
 
 ## Próximos passos sugeridos
 
