@@ -15,6 +15,7 @@ import {
   Mail,
   MapPin,
   MoreHorizontal,
+  Link2,
   Phone,
   Printer,
   Search,
@@ -165,6 +166,29 @@ async function copyText(text: string) {
   } catch {
     return false;
   }
+}
+
+function CopyStatusLinkButton({ orderId }: { orderId: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleClick() {
+    const url = `${window.location.origin}/pedido/status/${orderId}`;
+    const ok = await copyText(url);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="flex items-center gap-1.5 text-xs text-muted hover:text-accent"
+    >
+      <Link2 size={12} /> {copied ? "Link copiado!" : "Copiar link de acompanhamento"}
+    </button>
+  );
 }
 
 function csvCell(value: string) {
@@ -657,6 +681,7 @@ function OrderDetailPanel({
                 <Copy size={12} />
               </button>
             </p>
+            <CopyStatusLinkButton orderId={order.id} />
           </div>
         </section>
 
