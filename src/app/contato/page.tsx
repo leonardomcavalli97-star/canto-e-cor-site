@@ -26,6 +26,12 @@ export default function ContatoPage() {
         >
           @cantoecoratelie no Instagram
         </a>
+        <a
+          href="mailto:cantoecoratelie@gmail.com"
+          className="text-accent hover:text-accent-dark"
+        >
+          cantoecoratelie@gmail.com
+        </a>
       </div>
 
       <div className="mt-12">

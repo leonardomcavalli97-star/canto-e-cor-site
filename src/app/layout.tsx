@@ -57,6 +57,7 @@ const jsonLd = {
     addressRegion: "MS",
     addressCountry: "BR",
   },
+  email: "cantoecoratelie@gmail.com",
   sameAs: ["https://www.instagram.com/cantoecoratelie/"],
 };
 
