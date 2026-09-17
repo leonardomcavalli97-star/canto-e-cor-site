@@ -992,6 +992,11 @@ export default function OrderForm() {
               O prazo padrão é de até 1 mês, podendo variar conforme a demanda. Se
               quiser priorizar sua encomenda, escolha um prazo mais curto abaixo.
             </p>
+            <p className="mt-2 text-xs text-muted">
+              Esse prazo é para a pintura ficar pronta e ser postada — não inclui o
+              tempo de transporte dos Correios até você, que é à parte e pode ser maior
+              se você estiver em uma cidade mais distante.
+            </p>
             <div className="mt-4 space-y-2">
               {RUSH_OPTIONS.map((opt) => {
                 const selected = rushOption === opt.value;
