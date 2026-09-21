@@ -5,7 +5,7 @@ import { PAPER_SIZES, THEME_LABELS, formatPrice, type PaperSize } from "@/lib/pr
 const STATUS_LABELS: Record<string, string> = {
   pending_quote: "Aguardando orçamento",
   pending_payment: "Aguardando pagamento",
-  pix_pending: "Aguardando pagamento (Pix)",
+  pix_pending: "Aguardando pagamento",
   paid: "Pago · em produção",
   shipped: "Enviado",
   cancelled: "Cancelado",

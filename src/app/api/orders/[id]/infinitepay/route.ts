@@ -26,7 +26,7 @@ export async function POST(
   } catch (error) {
     console.error("Falha ao criar link InfinitePay", id, error);
     return NextResponse.json(
-      { error: "Não foi possível abrir o pagamento agora. Tente novamente ou pague com Pix." },
+      { error: "Não foi possível abrir o pagamento agora. Tente novamente em instantes." },
       { status: 502 }
     );
   }

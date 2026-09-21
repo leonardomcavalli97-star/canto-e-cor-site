@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import PixCheckout from "@/components/PixCheckout";
+import PaymentCheckout from "@/components/PaymentCheckout";
 
 export const metadata: Metadata = {
   title: "Pagamento | Canto e Cor",
 };
 
-export default async function PedidoPixPage({
+export default async function PedidoPagamentoPage({
   searchParams,
 }: {
   searchParams: Promise<{ order_id?: string }>;
@@ -19,16 +19,11 @@ export default async function PedidoPixPage({
         Falta só o pagamento
       </h1>
       <p className="mt-4 text-foreground/80">
-        Sua encomenda já foi registrada. Pague o valor exato abaixo para confirmarmos.
-      </p>
-      <p className="mt-2 text-sm text-foreground/60">
-        No cartão ou no Pix pelo link seguro, a confirmação é automática. No Pix por
-        QR Code abaixo, a confirmação é manual e pode levar até 24 horas — em ambos
-        os casos você não precisa esperar nesta página, avisamos por e-mail.
+        Sua encomenda já foi registrada. Finalize o pagamento para começarmos a pintar.
       </p>
 
       {orderId ? (
-        <PixCheckout orderId={orderId} />
+        <PaymentCheckout orderId={orderId} />
       ) : (
         <p className="mt-10 text-sm text-accent">Pedido não encontrado.</p>
       )}

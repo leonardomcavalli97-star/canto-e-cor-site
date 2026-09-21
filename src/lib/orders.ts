@@ -45,7 +45,7 @@ export interface OrderRecord {
   shippingCents: number;
   totalPriceCents: number | null;
   paymentReference?: string;
-  paymentMethod?: "pix_manual" | "pix" | "credit_card";
+  paymentMethod?: "pix" | "credit_card";
   installments?: number;
   receiptUrl?: string;
   paidAt?: string;

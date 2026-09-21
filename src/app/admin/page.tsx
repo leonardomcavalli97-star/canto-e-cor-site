@@ -58,7 +58,7 @@ type Order = {
   status: string;
   createdAt: string;
   paymentReference?: string;
-  paymentMethod?: "pix_manual" | "pix" | "credit_card";
+  paymentMethod?: "pix" | "credit_card";
   installments?: number;
   receiptUrl?: string;
   paidAt?: string;
@@ -73,7 +73,7 @@ type Tone = "waiting" | "attention" | "progress" | "done" | "cancelled";
 const STATUS_META: Record<string, { order: string; payment: string; tone: Tone }> = {
   pending_quote: { order: "Aguardando orçamento", payment: "A combinar", tone: "attention" },
   pending_payment: { order: "Aguardando pagamento", payment: "Aguardando cartão", tone: "waiting" },
-  pix_pending: { order: "Aguardando pagamento", payment: "Aguardando Pix", tone: "waiting" },
+  pix_pending: { order: "Aguardando pagamento", payment: "Aguardando pagamento", tone: "waiting" },
   paid: { order: "Em produção", payment: "Pago", tone: "progress" },
   shipped: { order: "Enviado", payment: "Pago", tone: "done" },
   cancelled: { order: "Cancelado", payment: "Cancelado", tone: "cancelled" },
@@ -166,7 +166,8 @@ function paymentMethodLabel(order: Order) {
     return n > 1 ? `Cartão em ${n}x (InfinitePay, automático)` : "Cartão à vista (InfinitePay, automático)";
   }
   if (order.paymentMethod === "pix") return "Pix (InfinitePay, automático)";
-  if (order.status === "pix_pending" || order.status === "paid" || order.status === "shipped") return "Pix";
+  if (order.status === "paid" || order.status === "shipped") return "Confirmado manualmente";
+  if (order.status === "pix_pending" || order.status === "pending_payment") return "InfinitePay (aguardando)";
   return "A definir";
 }
 
@@ -456,7 +457,7 @@ function QuoteForm({ orderId }: { orderId: string }) {
         <div className="mt-2 space-y-1 text-xs">
           <p className="text-foreground/70">E-mail com os links já foi enviado ao cliente.</p>
           <p className="break-all">
-            Pix:{" "}
+            Pagamento:{" "}
             <a className="text-accent underline" href={links.pixUrl} target="_blank" rel="noreferrer">
               {links.pixUrl}
             </a>

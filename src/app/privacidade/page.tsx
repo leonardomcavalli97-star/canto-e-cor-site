@@ -35,10 +35,10 @@ export default function PrivacidadePage() {
           </ul>
           <p className="mt-3">
             O site não coleta nem armazena dados de cartão ou informações bancárias. O
-            pagamento é feito por Pix, diretamente no aplicativo do seu banco, ou pelo
-            checkout seguro da InfinitePay (cartão em até 12x ou Pix): nesse caso, os dados
-            do cartão são digitados apenas no ambiente da InfinitePay e nós recebemos só a
-            confirmação do pagamento (valor, número de parcelas e comprovante).
+            pagamento é feito no checkout seguro da InfinitePay (cartão em até 12x ou Pix):
+            os dados do cartão são digitados apenas no ambiente da InfinitePay e nós
+            recebemos só a confirmação do pagamento (valor, número de parcelas e
+            comprovante).
           </p>
         </section>
 

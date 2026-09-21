@@ -49,12 +49,10 @@ export default function TermosPage() {
         <section>
           <h2 className="font-serif-display text-2xl text-foreground">Pagamento</h2>
           <p className="mt-3">
-            O pagamento pode ser feito por Pix, usando o QR Code gerado no site, ou pelo
-            checkout da InfinitePay, com cartão em até 12x ou Pix. No checkout da InfinitePay
-            a confirmação é automática e as condições de parcelamento (incluindo eventuais
-            juros) são exibidas na tela de pagamento antes de você concluir. No Pix por QR
-            Code a confirmação é manual: a produção só começa depois que o pagamento é
-            conferido pelo ateliê, então guarde o comprovante até receber a confirmação.
+            O pagamento é feito pelo checkout seguro da InfinitePay, com cartão de crédito
+            em até 12x ou Pix. A confirmação é automática e as condições de parcelamento
+            (incluindo eventuais juros) são exibidas na tela de pagamento antes de você
+            concluir. A produção da peça começa depois que o pagamento é confirmado.
           </p>
         </section>
 

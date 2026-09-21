@@ -1104,9 +1104,8 @@ export default function OrderForm() {
                 ) : (
                   <p>
                     <strong className="text-accent">Como funciona o pagamento:</strong> ao confirmar, você
-                    escolhe pagar no cartão (em até 12x) ou com Pix. No cartão a confirmação é automática; no
-                    Pix por QR Code é manual e pode levar até 24h — você recebe um e-mail assim que o
-                    pagamento for confirmado.
+                    paga no cartão (em até 12x) ou com Pix pelo ambiente seguro da InfinitePay. A
+                    confirmação é automática e você recebe um e-mail assim que o pagamento for aprovado.
                   </p>
                 )}
               </div>

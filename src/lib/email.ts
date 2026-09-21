@@ -69,7 +69,7 @@ export async function sendPaymentConfirmedEmail(to: string, name: string) {
         <p style="font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #a15c5c;">Canto e Cor</p>
         <h1 style="font-size: 24px; margin: 8px 0 16px;">Pagamento confirmado!</h1>
         <p>Olá, ${escapeHtml(name)}!</p>
-        <p>Recebemos o seu Pix e o pagamento já está confirmado. Sua aquarela entrou para a fila de produção — já vamos começar a pintar!</p>
+        <p>Recebemos o seu pagamento e ele já está confirmado. Sua aquarela entrou para a fila de produção — já vamos começar a pintar!</p>
         <p>Avisamos você de novo assim que ela for enviada.</p>
         <p style="margin-top: 24px;">Com carinho,<br />Canto e Cor</p>
       </div>
@@ -90,7 +90,7 @@ export async function sendNewOrderNotificationEmail(orderName: string) {
       <div style="font-family: Georgia, serif; color: #3a2a2a; max-width: 480px; margin: 0 auto;">
         <p style="font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #a15c5c;">Canto e Cor</p>
         <h1 style="font-size: 24px; margin: 8px 0 16px;">Novo pedido recebido</h1>
-        <p>${escapeHtml(orderName)} acabou de fazer um pedido. Entre no admin para conferir os detalhes e, quando o Pix cair na conta, confirmar o pagamento.</p>
+        <p>${escapeHtml(orderName)} acabou de fazer um pedido. Entre no admin para conferir os detalhes. O pagamento é confirmado automaticamente assim que o cliente pagar.</p>
         <p>
           <a href="https://www.cantoecor.com/admin" style="color: #a15c5c;">Abrir o admin</a>
         </p>
@@ -129,16 +129,16 @@ export async function sendPaymentReminderEmail(to: string, name: string, pixUrl:
   await resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: "Seu Pix ainda está pendente · Canto e Cor",
+    subject: "Seu pagamento ainda está pendente · Canto e Cor",
     html: `
       <div style="font-family: Georgia, serif; color: #3a2a2a; max-width: 480px; margin: 0 auto;">
         <p style="font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #a15c5c;">Canto e Cor</p>
-        <h1 style="font-size: 24px; margin: 8px 0 16px;">Ainda esperamos seu Pix</h1>
+        <h1 style="font-size: 24px; margin: 8px 0 16px;">Ainda esperamos seu pagamento</h1>
         <p>Olá, ${escapeHtml(name)}!</p>
-        <p>Notamos que o pagamento do seu pedido ainda não foi feito. Se você já pagou, pode ignorar este e-mail — a confirmação é manual e pode levar até 24h.</p>
-        <p>Se ainda não pagou, o código Pix continua disponível aqui:</p>
+        <p>Notamos que o pagamento do seu pedido ainda não foi feito. Se você já pagou, pode ignorar este e-mail — a confirmação é automática e chega em instantes.</p>
+        <p>Se ainda não pagou, você pode pagar no cartão (em até 12x) ou com Pix aqui:</p>
         <p>
-          <a href="${pixUrl}" style="color: #a15c5c;">Ver meu Pix</a>
+          <a href="${pixUrl}" style="color: #a15c5c;">Pagar agora</a>
         </p>
         <p style="margin-top: 24px;">Com carinho,<br />Canto e Cor</p>
       </div>

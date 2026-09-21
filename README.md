@@ -24,7 +24,7 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `/galeria` — trabalhos do ateliê (fotos reais em `public/gallery/`)
 - `/sobre` — sobre o ateliê + seção "Quem pinta" com a história da Lívia
 - `/pedido` — **formulário de encomenda** (tamanho, tema, foto de referência,
-  descrição, dados de contato) → cria a encomenda e mostra o Pix (QR Code próprio)
+  descrição, dados de contato) → cria a encomenda e leva ao pagamento (InfinitePay)
 - `/contato` — Instagram do ateliê
 - `src/lib/pricing.ts` — tamanhos e preços (A5 R$180 / A4 R$210), taxas de prazo
   expresso e frete. Mude aqui se os valores da tabela mudarem.
@@ -33,28 +33,20 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `public/brand/` — logo, selo, "Made with love.", assinatura e listrados em SVG
 - `public/gallery/` — fotos das peças (WebP otimizado)
 
-## Pagamento (Pix)
+## Pagamento (InfinitePay)
 
-Único meio de pagamento do site. Código estático gerado na hora (via `pix-utils`),
-sem depender de nenhuma conta/API externa — não é possível confirmar pagamento
-automaticamente, a confirmação é sempre manual pelo admin.
-
-A chave Pix vem da variável de ambiente `PIX_KEY` (veja `.env.example`); se não
-estiver configurada, `src/lib/pix.ts` usa a chave da Lívia como padrão. Nome e cidade
-do titular ficam fixos em `PIX_MERCHANT_NAME`/`PIX_MERCHANT_CITY`, no mesmo arquivo.
-
-## Cartão parcelado (InfinitePay)
-
-Se `INFINITEPAY_HANDLE` estiver configurada, a página de pagamento mostra também o
-botão "Pagar no cartão / parcelar", que abre o checkout da InfinitePay (cartão em
-até 12x ou Pix). A confirmação é automática: a InfinitePay chama o webhook
+Único meio de pagamento do site: a página de pagamento (`/pedido-pix`, mantida com esse
+nome por causa dos links de e-mails antigos) tem o botão "Pagar agora", que abre o
+checkout da InfinitePay (cartão em até 12x ou Pix). Precisa da variável
+`INFINITEPAY_HANDLE` (a InfiniteTag, sem o `$`). A confirmação é automática: a
+InfinitePay chama o webhook
 `/api/webhooks/infinitepay` e a página de retorno chama
 `/api/orders/[id]/infinitepay/confirm` como reforço. O webhook não tem assinatura,
 então o código (`src/lib/infinitepay.ts`) nunca confia no corpo recebido: só marca
 o pedido como pago depois que a API `payment_check` da InfinitePay confirmar o
 pagamento e o valor bater com o total do pedido. No `/admin` o pedido aparece
-como pago, com método, parcelas e comprovante. O Pix por QR Code continua
-disponível (confirmação manual).
+como pago, com método, parcelas e comprovante. O botão "Marcar como pago" do admin
+continua existindo só para exceções (ex.: pagamento combinado fora do site).
 
 ## Onde ficam os pedidos
 
@@ -69,8 +61,8 @@ configurada, os e-mails simplesmente não saem (sem erro visível), então confi
 ## Env vars necessárias
 
 Veja `.env.example`: `ADMIN_PASSWORD`, `ADMIN_NOTIFICATION_EMAIL`, `RESEND_API_KEY`,
-`BLOB_READ_WRITE_TOKEN` (gerada automaticamente ao conectar um Blob Store na Vercel) e,
-opcionalmente, `PIX_KEY`.
+`BLOB_READ_WRITE_TOKEN` (gerada automaticamente ao conectar um Blob Store na Vercel) e
+`INFINITEPAY_HANDLE`.
 
 ## Próximos passos sugeridos
 
