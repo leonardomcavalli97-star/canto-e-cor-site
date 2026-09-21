@@ -35,7 +35,7 @@ export default function PrivacidadePage() {
           </ul>
           <p className="mt-3">
             O site não coleta nem armazena dados de cartão ou informações bancárias. O
-            pagamento é feito no checkout seguro da InfinitePay (cartão em até 12x ou Pix):
+            pagamento é feito no checkout seguro da InfinitePay (cartão em até 3x ou Pix):
             os dados do cartão são digitados apenas no ambiente da InfinitePay e nós
             recebemos só a confirmação do pagamento (valor, número de parcelas e
             comprovante).
@@ -68,9 +68,9 @@ export default function PrivacidadePage() {
           </p>
           <p className="mt-3">
             Usamos também o serviço Resend para enviar e-mails automáticos (confirmação de
-            pedido, aviso de pagamento, notificação de envio) a Vercel para hospedar o
-            site e a InfinitePay para processar pagamentos no cartão. Esses serviços têm acesso apenas aos dados estritamente necessários para
-            cumprir essas funções.
+            pedido, aviso de pagamento, notificação de envio), a Vercel para hospedar o
+            site e a InfinitePay para processar pagamentos. Esses serviços têm acesso apenas
+            aos dados estritamente necessários para cumprir essas funções.
           </p>
           <p className="mt-3">
             Uma rotina automática diária remove fotos de referência de pedidos muito antigos

@@ -1104,7 +1104,7 @@ export default function OrderForm() {
                 ) : (
                   <p>
                     <strong className="text-accent">Como funciona o pagamento:</strong> ao confirmar, você
-                    paga no cartão (em até 12x) ou com Pix pelo ambiente seguro da InfinitePay. A
+                    paga no cartão (em até 3x) ou com Pix pelo ambiente seguro da InfinitePay. A
                     confirmação é automática e você recebe um e-mail assim que o pagamento for aprovado.
                   </p>
                 )}
@@ -1251,7 +1251,7 @@ export default function OrderForm() {
               </li>
               <li className="flex items-center gap-2">
                 <Lock size={14} className="shrink-0 text-accent" />
-                {overallHasCustom ? "Orçamento sem compromisso" : "Cartão em até 12x ou Pix"}
+                {overallHasCustom ? "Orçamento sem compromisso" : "Cartão em até 3x ou Pix"}
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={14} className="shrink-0 text-accent" /> Você acompanha cada etapa por e-mail

@@ -50,7 +50,7 @@ export default function TermosPage() {
           <h2 className="font-serif-display text-2xl text-foreground">Pagamento</h2>
           <p className="mt-3">
             O pagamento é feito pelo checkout seguro da InfinitePay, com cartão de crédito
-            em até 12x ou Pix. A confirmação é automática e as condições de parcelamento
+            em até 3x ou Pix. A confirmação é automática e as condições de parcelamento
             (incluindo eventuais juros) são exibidas na tela de pagamento antes de você
             concluir. A produção da peça começa depois que o pagamento é confirmado.
           </p>

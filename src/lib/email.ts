@@ -45,7 +45,7 @@ export async function sendQuoteReadyEmail(
         <h1 style="font-size: 24px; margin: 8px 0 16px;">Seu orçamento está pronto!</h1>
         <p>Olá, ${escapeHtml(name)}!</p>
         <p>O valor combinado para o seu pedido personalizado é <strong>${formatBRL(amountCents)}</strong>.</p>
-        <p>Pague no cartão (em até 12x) ou com Pix pelo link abaixo:</p>
+        <p>Pague no cartão (em até 3x) ou com Pix pelo link abaixo:</p>
         <p>
           <a href="${pixUrl}" style="color: #a15c5c;">Ir para o pagamento</a>
         </p>
@@ -136,7 +136,7 @@ export async function sendPaymentReminderEmail(to: string, name: string, pixUrl:
         <h1 style="font-size: 24px; margin: 8px 0 16px;">Ainda esperamos seu pagamento</h1>
         <p>Olá, ${escapeHtml(name)}!</p>
         <p>Notamos que o pagamento do seu pedido ainda não foi feito. Se você já pagou, pode ignorar este e-mail — a confirmação é automática e chega em instantes.</p>
-        <p>Se ainda não pagou, você pode pagar no cartão (em até 12x) ou com Pix aqui:</p>
+        <p>Se ainda não pagou, você pode pagar no cartão (em até 3x) ou com Pix aqui:</p>
         <p>
           <a href="${pixUrl}" style="color: #a15c5c;">Pagar agora</a>
         </p>

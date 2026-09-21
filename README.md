@@ -37,7 +37,7 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 Único meio de pagamento do site: a página de pagamento (`/pedido-pix`, mantida com esse
 nome por causa dos links de e-mails antigos) tem o botão "Pagar agora", que abre o
-checkout da InfinitePay (cartão em até 12x ou Pix). Precisa da variável
+checkout da InfinitePay (cartão em até 3x ou Pix). Precisa da variável
 `INFINITEPAY_HANDLE` (a InfiniteTag, sem o `$`). A confirmação é automática: a
 InfinitePay chama o webhook
 `/api/webhooks/infinitepay` e a página de retorno chama

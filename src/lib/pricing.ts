@@ -79,3 +79,5 @@ export function formatBRL(cents: number) {
 export function formatPrice(cents: number | null) {
   return cents === null ? "Valor a combinar" : formatBRL(cents);
 }
+
+export const MAX_INSTALLMENTS = 3;

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, CreditCard, Loader2, Lock, QrCode } from "lucide-react";
-import { formatBRL } from "@/lib/pricing";
+import { CheckCircle2, CreditCard, Loader2, QrCode } from "lucide-react";
+import { MAX_INSTALLMENTS, formatBRL } from "@/lib/pricing";
 
 type PaymentData = {
   amountCents: number;
@@ -16,7 +16,7 @@ const POLL_INTERVAL_MS = 5000;
 export default function PaymentCheckout({ orderId }: { orderId: string }) {
   const [data, setData] = useState<PaymentData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [starting, setStarting] = useState(false);
+  const [starting, setStarting] = useState<"pix" | "card" | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const [returningFromCheckout] = useState(
     () =>
@@ -73,21 +73,21 @@ export default function PaymentCheckout({ orderId }: { orderId: string }) {
     };
   }, [orderId]);
 
-  async function handlePay() {
-    setStarting(true);
+  async function handlePay(method: "pix" | "card") {
+    setStarting(method);
     setStartError(null);
     try {
       const res = await fetch(`/api/orders/${orderId}/infinitepay`, { method: "POST" });
       const json = await res.json();
       if (!res.ok || !json.url) {
         setStartError(json.error ?? "Não foi possível abrir o pagamento agora.");
-        setStarting(false);
+        setStarting(null);
         return;
       }
       window.location.href = json.url;
     } catch {
       setStartError("Falha de conexão. Tente novamente.");
-      setStarting(false);
+      setStarting(null);
     }
   }
 
@@ -134,38 +134,40 @@ export default function PaymentCheckout({ orderId }: { orderId: string }) {
 
       {data.paymentAvailable ? (
         <>
-          <ul className="mt-6 space-y-2 text-sm text-foreground/80">
-            <li className="flex items-center gap-2">
-              <CreditCard size={16} className="shrink-0 text-accent" />
-              Cartão de crédito em até 12x
-            </li>
-            <li className="flex items-center gap-2">
-              <QrCode size={16} className="shrink-0 text-accent" />
-              Pix, com confirmação na hora
-            </li>
-          </ul>
+          <p className="mt-6 text-sm font-medium text-foreground">Como você quer pagar?</p>
 
-          <button
-            type="button"
-            onClick={handlePay}
-            disabled={starting}
-            className="mt-6 flex w-full items-center justify-center gap-2 bg-accent px-4 py-4 text-sm tracking-wide text-white uppercase transition-colors hover:bg-accent-dark disabled:opacity-60"
-          >
-            {starting ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Abrindo pagamento...
-              </>
-            ) : (
-              <>
-                <Lock size={16} /> Pagar agora
-              </>
-            )}
-          </button>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => handlePay("pix")}
+              disabled={starting !== null}
+              className="flex flex-col items-start gap-1 border-2 border-accent bg-accent px-5 py-4 text-left text-white transition-colors hover:bg-accent-dark disabled:opacity-60"
+            >
+              <span className="flex items-center gap-2 text-sm tracking-wide uppercase">
+                {starting === "pix" ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />}
+                Pagar com Pix
+              </span>
+              <span className="text-xs text-white/80">À vista · confirmação na hora</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handlePay("card")}
+              disabled={starting !== null}
+              className="flex flex-col items-start gap-1 border-2 border-accent bg-background px-5 py-4 text-left text-accent transition-colors hover:bg-accent/5 disabled:opacity-60"
+            >
+              <span className="flex items-center gap-2 text-sm tracking-wide uppercase">
+                {starting === "card" ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
+                Parcelar no cartão
+              </span>
+              <span className="text-xs text-accent/80">Em até {MAX_INSTALLMENTS}x</span>
+            </button>
+          </div>
           {startError && <p className="mt-3 text-sm text-accent">{startError}</p>}
 
           <p className="mt-4 text-xs text-foreground/60">
-            Você será levado(a) ao ambiente seguro da InfinitePay para escolher a forma
-            de pagamento e ver as condições de parcelamento. Seus dados de cartão não
+            Você será levado(a) ao ambiente seguro da InfinitePay para concluir o
+            pagamento e ver as condições de parcelamento. Seus dados de cartão não
             passam por este site. Ao concluir, o pagamento é confirmado automaticamente
             e você recebe um e-mail.
           </p>
