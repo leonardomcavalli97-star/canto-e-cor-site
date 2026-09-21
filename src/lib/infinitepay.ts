@@ -54,6 +54,13 @@ export async function createCheckoutLink(
       items: buildCheckoutItems(order),
       redirect_url: `${origin}/pedido-pix?order_id=${order.id}`,
       webhook_url: `${origin}/api/webhooks/infinitepay`,
+      address: {
+        cep: order.shippingAddress.cep.replace(/\D/g, ""),
+        street: order.shippingAddress.street,
+        neighborhood: order.shippingAddress.neighborhood,
+        number: order.shippingAddress.number,
+        ...(order.shippingAddress.complement ? { complement: order.shippingAddress.complement } : {}),
+      },
       customer: {
         name: order.name,
         email: order.email,
