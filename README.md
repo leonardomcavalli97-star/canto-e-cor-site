@@ -43,6 +43,19 @@ A chave Pix vem da variável de ambiente `PIX_KEY` (veja `.env.example`); se nã
 estiver configurada, `src/lib/pix.ts` usa a chave da Lívia como padrão. Nome e cidade
 do titular ficam fixos em `PIX_MERCHANT_NAME`/`PIX_MERCHANT_CITY`, no mesmo arquivo.
 
+## Cartão parcelado (InfinitePay)
+
+Se `INFINITEPAY_HANDLE` estiver configurada, a página de pagamento mostra também o
+botão "Pagar no cartão / parcelar", que abre o checkout da InfinitePay (cartão em
+até 12x ou Pix). A confirmação é automática: a InfinitePay chama o webhook
+`/api/webhooks/infinitepay` e a página de retorno chama
+`/api/orders/[id]/infinitepay/confirm` como reforço. O webhook não tem assinatura,
+então o código (`src/lib/infinitepay.ts`) nunca confia no corpo recebido: só marca
+o pedido como pago depois que a API `payment_check` da InfinitePay confirmar o
+pagamento e o valor bater com o total do pedido. No `/admin` o pedido aparece
+como pago, com método, parcelas e comprovante. O Pix por QR Code continua
+disponível (confirmação manual).
+
 ## Onde ficam os pedidos
 
 Pedidos (JSON) e fotos de referência são salvos no **Vercel Blob**, com acesso

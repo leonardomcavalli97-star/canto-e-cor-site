@@ -45,6 +45,9 @@ export interface OrderRecord {
   shippingCents: number;
   totalPriceCents: number | null;
   paymentReference?: string;
+  paymentMethod?: "pix_manual" | "pix" | "credit_card";
+  installments?: number;
+  receiptUrl?: string;
   paidAt?: string;
   rushDays: number | null;
   rushCents: number;
@@ -166,6 +169,30 @@ export async function updateOrderStatus(
   if (paymentReference) record.paymentReference = paymentReference;
   if (status === "paid" && !record.paidAt) record.paidAt = new Date().toISOString();
   return writeOrder(record);
+}
+
+export async function recordAutomaticPayment(
+  id: string,
+  payment: {
+    paymentReference: string;
+    paymentMethod: "pix" | "credit_card";
+    installments: number;
+    receiptUrl?: string;
+  }
+): Promise<{ order: OrderRecord; alreadyPaid: boolean }> {
+  const raw = await readOrderJson(orderPathname(id));
+  if (!raw) throw new Error("Pedido não encontrado.");
+  const record = normalizeOrder(raw);
+  if (record.status === "paid" || record.status === "shipped") {
+    return { order: record, alreadyPaid: true };
+  }
+  record.status = "paid";
+  record.paidAt = new Date().toISOString();
+  record.paymentReference = payment.paymentReference;
+  record.paymentMethod = payment.paymentMethod;
+  record.installments = payment.installments;
+  if (payment.receiptUrl) record.receiptUrl = payment.receiptUrl;
+  return { order: await writeOrder(record), alreadyPaid: false };
 }
 
 export async function setOrderNotes(id: string, notes: string) {

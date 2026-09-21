@@ -45,9 +45,9 @@ export async function sendQuoteReadyEmail(
         <h1 style="font-size: 24px; margin: 8px 0 16px;">Seu orçamento está pronto!</h1>
         <p>Olá, ${escapeHtml(name)}!</p>
         <p>O valor combinado para o seu pedido personalizado é <strong>${formatBRL(amountCents)}</strong>.</p>
-        <p>Pague com Pix pelo link abaixo:</p>
+        <p>Pague no cartão (em até 12x) ou com Pix pelo link abaixo:</p>
         <p>
-          <a href="${pixUrl}" style="color: #a15c5c;">Pagar com Pix</a>
+          <a href="${pixUrl}" style="color: #a15c5c;">Ir para o pagamento</a>
         </p>
         <p>Assim que o pagamento for confirmado, começamos a pintar!</p>
         <p style="margin-top: 24px;">Com carinho,<br />Canto e Cor</p>

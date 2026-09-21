@@ -1104,8 +1104,9 @@ export default function OrderForm() {
                 ) : (
                   <p>
                     <strong className="text-accent">Como funciona o pagamento:</strong> ao confirmar, você
-                    paga com Pix. A confirmação é manual e pode levar até 24h — você recebe um e-mail assim
-                    que o pagamento for confirmado.
+                    escolhe pagar no cartão (em até 12x) ou com Pix. No cartão a confirmação é automática; no
+                    Pix por QR Code é manual e pode levar até 24h — você recebe um e-mail assim que o
+                    pagamento for confirmado.
                   </p>
                 )}
               </div>
@@ -1231,7 +1232,7 @@ export default function OrderForm() {
                     "Enviar pedido de orçamento"
                   ) : (
                     <>
-                      <QrCode size={18} /> Pagar com Pix
+                      <QrCode size={18} /> Ir para o pagamento
                     </>
                   )}
                 </Button>
@@ -1251,7 +1252,7 @@ export default function OrderForm() {
               </li>
               <li className="flex items-center gap-2">
                 <Lock size={14} className="shrink-0 text-accent" />
-                {overallHasCustom ? "Orçamento sem compromisso" : "Pague com Pix"}
+                {overallHasCustom ? "Orçamento sem compromisso" : "Cartão em até 12x ou Pix"}
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={14} className="shrink-0 text-accent" /> Você acompanha cada etapa por e-mail
@@ -1288,7 +1289,7 @@ export default function OrderForm() {
                 "Enviar orçamento"
               ) : (
                 <>
-                  <QrCode size={16} /> Pagar com Pix
+                  <QrCode size={16} /> Ir para o pagamento
                 </>
               )}
             </Button>

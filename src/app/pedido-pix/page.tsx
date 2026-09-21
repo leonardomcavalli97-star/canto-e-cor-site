@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import PixCheckout from "@/components/PixCheckout";
 
 export const metadata: Metadata = {
-  title: "Pagar com Pix | Canto e Cor",
+  title: "Pagamento | Canto e Cor",
 };
 
 export default async function PedidoPixPage({
@@ -14,7 +14,7 @@ export default async function PedidoPixPage({
 
   return (
     <div className="mx-auto max-w-xl px-6 py-24 text-center">
-      <p className="mb-3 text-xs tracking-[0.2em] text-accent uppercase">Pagamento via Pix</p>
+      <p className="mb-3 text-xs tracking-[0.2em] text-accent uppercase">Pagamento</p>
       <h1 className="font-serif-display text-4xl text-foreground">
         Falta só o pagamento
       </h1>
@@ -22,8 +22,9 @@ export default async function PedidoPixPage({
         Sua encomenda já foi registrada. Pague o valor exato abaixo para confirmarmos.
       </p>
       <p className="mt-2 text-sm text-foreground/60">
-        A confirmação é feita manualmente e pode levar até 24 horas — você não
-        precisa esperar nesta página. Assim que confirmarmos, avisamos por e-mail.
+        No cartão ou no Pix pelo link seguro, a confirmação é automática. No Pix por
+        QR Code abaixo, a confirmação é manual e pode levar até 24 horas — em ambos
+        os casos você não precisa esperar nesta página, avisamos por e-mail.
       </p>
 
       {orderId ? (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrder } from "@/lib/orders";
 import { buildPix } from "@/lib/pix";
+import { getInfinitePayHandle } from "@/lib/infinitepay";
 
 export async function GET(
   _req: NextRequest,
@@ -24,5 +25,6 @@ export async function GET(
     amountCents: order.totalPriceCents,
     name: order.name,
     status: order.status,
+    cardAvailable: getInfinitePayHandle() !== null,
   });
 }

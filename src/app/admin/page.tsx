@@ -58,6 +58,9 @@ type Order = {
   status: string;
   createdAt: string;
   paymentReference?: string;
+  paymentMethod?: "pix_manual" | "pix" | "credit_card";
+  installments?: number;
+  receiptUrl?: string;
   paidAt?: string;
   rushDays: number | null;
   rushCents: number;
@@ -158,6 +161,11 @@ function orderSummary(order: Order) {
 }
 
 function paymentMethodLabel(order: Order) {
+  if (order.paymentMethod === "credit_card") {
+    const n = order.installments ?? 1;
+    return n > 1 ? `Cartão em ${n}x (InfinitePay, automático)` : "Cartão à vista (InfinitePay, automático)";
+  }
+  if (order.paymentMethod === "pix") return "Pix (InfinitePay, automático)";
   if (order.status === "pix_pending" || order.status === "paid" || order.status === "shipped") return "Pix";
   return "A definir";
 }
@@ -757,6 +765,18 @@ function OrderDetailPanel({
             <p className="text-lg font-medium text-accent">{formatPrice(order.totalPriceCents)}</p>
             <p>Método: {paymentMethodLabel(order)}</p>
             {order.paidAt && <p className="text-muted">Pago em {formatDate(order.paidAt)}</p>}
+            {order.receiptUrl && (
+              <p>
+                <a
+                  href={order.receiptUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:text-accent-dark"
+                >
+                  Ver comprovante
+                </a>
+              </p>
+            )}
             <PaidAtEditor orderId={order.id} paidAt={order.paidAt} />
           </div>
         </section>
@@ -1400,7 +1420,7 @@ export default function AdminPage() {
   useEffect(() => {
     const id = setInterval(() => {
       if (document.visibilityState === "visible") loadOrders();
-    }, 2 * 60 * 1000);
+    }, 30 * 1000);
     return () => clearInterval(id);
   }, []);
 

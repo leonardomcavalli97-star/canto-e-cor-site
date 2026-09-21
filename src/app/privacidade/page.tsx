@@ -34,9 +34,11 @@ export default function PrivacidadePage() {
             <li>Comprovante de pagamento, quando enviado.</li>
           </ul>
           <p className="mt-3">
-            Não coletamos dados de cartão de crédito ou qualquer informação bancária: o
-            pagamento é feito por Pix, diretamente no aplicativo do seu banco, e o site nunca
-            tem acesso a essas informações.
+            O site não coleta nem armazena dados de cartão ou informações bancárias. O
+            pagamento é feito por Pix, diretamente no aplicativo do seu banco, ou pelo
+            checkout seguro da InfinitePay (cartão em até 12x ou Pix): nesse caso, os dados
+            do cartão são digitados apenas no ambiente da InfinitePay e nós recebemos só a
+            confirmação do pagamento (valor, número de parcelas e comprovante).
           </p>
         </section>
 
@@ -66,8 +68,8 @@ export default function PrivacidadePage() {
           </p>
           <p className="mt-3">
             Usamos também o serviço Resend para enviar e-mails automáticos (confirmação de
-            pedido, aviso de pagamento, notificação de envio) e a Vercel para hospedar o
-            site. Esses serviços têm acesso apenas aos dados estritamente necessários para
+            pedido, aviso de pagamento, notificação de envio) a Vercel para hospedar o
+            site e a InfinitePay para processar pagamentos no cartão. Esses serviços têm acesso apenas aos dados estritamente necessários para
             cumprir essas funções.
           </p>
           <p className="mt-3">
