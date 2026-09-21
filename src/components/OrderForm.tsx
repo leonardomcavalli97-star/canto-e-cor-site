@@ -23,7 +23,7 @@ import {
   Minus,
   Paintbrush,
   Plus,
-  QrCode,
+  CreditCard,
   X,
 } from "lucide-react";
 
@@ -1231,7 +1231,7 @@ export default function OrderForm() {
                     "Enviar pedido de orçamento"
                   ) : (
                     <>
-                      <QrCode size={18} /> Ir para o pagamento
+                      <CreditCard size={18} /> Ir para o pagamento
                     </>
                   )}
                 </Button>
@@ -1288,7 +1288,7 @@ export default function OrderForm() {
                 "Enviar orçamento"
               ) : (
                 <>
-                  <QrCode size={16} /> Ir para o pagamento
+                  <CreditCard size={16} /> Ir para o pagamento
                 </>
               )}
             </Button>
