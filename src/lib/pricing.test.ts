@@ -23,7 +23,7 @@ describe("PAPER_SIZES", () => {
 describe("getRushOption", () => {
   it("finds the option by value", () => {
     expect(getRushOption("5d").days).toBe(5);
-    expect(getRushOption("5d").priceCents).toBe(8000);
+    expect(getRushOption("5d").priceCents).toBe(16000);
   });
 
   it("falls back to the first option (standard) for an unknown value", () => {

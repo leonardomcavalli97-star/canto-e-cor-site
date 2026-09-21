@@ -41,10 +41,10 @@ export type RushValue = "standard" | "20d" | "15d" | "10d" | "5d";
 
 export const RUSH_OPTIONS: { value: RushValue; label: string; days: number | null; priceCents: number }[] = [
   { value: "standard", label: "Sem urgência", days: null, priceCents: 0 },
-  { value: "20d", label: "Em até 20 dias", days: 20, priceCents: 1500 },
-  { value: "15d", label: "Em até 15 dias", days: 15, priceCents: 2000 },
-  { value: "10d", label: "Em até 10 dias", days: 10, priceCents: 4000 },
-  { value: "5d", label: "Em até 5 dias", days: 5, priceCents: 8000 },
+  { value: "20d", label: "Em até 20 dias", days: 20, priceCents: 3000 },
+  { value: "15d", label: "Em até 15 dias", days: 15, priceCents: 4000 },
+  { value: "10d", label: "Em até 10 dias", days: 10, priceCents: 8000 },
+  { value: "5d", label: "Em até 5 dias", days: 5, priceCents: 16000 },
 ];
 
 export function getRushOption(value: string) {
