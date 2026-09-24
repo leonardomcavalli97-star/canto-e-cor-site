@@ -28,7 +28,7 @@ export default function PrivacidadePage() {
             Ao preencher o formulário de encomenda em <code>/pedido</code>, coletamos:
           </p>
           <ul className="mt-3 list-disc space-y-1 pl-5">
-            <li>Nome completo, e-mail e telefone/WhatsApp;</li>
+            <li>Nome completo, CPF, e-mail e telefone/WhatsApp;</li>
             <li>Endereço de entrega (CEP, rua, número, bairro, cidade e estado);</li>
             <li>A foto de referência enviada e a descrição do pedido;</li>
             <li>Comprovante de pagamento, quando enviado.</li>
@@ -47,6 +47,7 @@ export default function PrivacidadePage() {
           <ul className="mt-3 list-disc space-y-1 pl-5">
             <li>Produzir a aquarela encomendada, a partir da foto e das instruções enviadas;</li>
             <li>Combinar prazo, valores e forma de pagamento;</li>
+            <li>Identificar o cliente e prevenir fraude no pagamento (CPF);</li>
             <li>Enviar a peça no endereço informado;</li>
             <li>Avisar sobre o andamento do pedido (confirmação, pagamento, envio);</li>
             <li>Responder dúvidas enviadas por e-mail, formulário ou Instagram.</li>

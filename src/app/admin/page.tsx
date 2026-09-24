@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Clock,
   Copy,
+  CreditCard,
   Download,
   ImageIcon,
   Mail,
@@ -51,6 +52,7 @@ type Order = {
   name: string;
   email: string;
   phone: string;
+  cpf: string;
   items: OrderItem[];
   shippingAddress: ShippingAddress;
   shippingCents: number;
@@ -693,6 +695,19 @@ function OrderDetailPanel({
                 <Copy size={12} />
               </button>
             </p>
+            {order.cpf && (
+              <p className="flex items-center gap-2 text-foreground/70">
+                <CreditCard size={14} className="text-muted" /> {order.cpf}
+                <button
+                  type="button"
+                  onClick={() => copyText(order.cpf)}
+                  aria-label="Copiar CPF"
+                  className="text-muted hover:text-accent"
+                >
+                  <Copy size={12} />
+                </button>
+              </p>
+            )}
             <CopyStatusLinkButton orderId={order.id} />
           </div>
         </section>

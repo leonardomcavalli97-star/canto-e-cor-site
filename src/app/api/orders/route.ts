@@ -10,6 +10,7 @@ import {
 } from "@/lib/pricing";
 import { sendNewOrderNotificationEmail, sendOrderReceivedEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/rateLimit";
+import { isValidCpf } from "@/lib/cpf";
 
 const MAX_FILES = 5;
 const MAX_ITEMS = 10;
@@ -35,8 +36,9 @@ export async function POST(req: NextRequest) {
     const name = clip(String(formData.get("name") ?? "").trim(), 200);
     const email = clip(String(formData.get("email") ?? "").trim(), 254);
     const phone = clip(String(formData.get("phone") ?? "").trim(), 30);
+    const cpf = clip(String(formData.get("cpf") ?? "").trim(), 14);
 
-    if (!name || !email || !phone) {
+    if (!name || !email || !phone || !cpf) {
       return NextResponse.json(
         { error: "Preencha todos os campos obrigatórios." },
         { status: 400 }
@@ -47,6 +49,9 @@ export async function POST(req: NextRequest) {
     }
     if (phone.replace(/\D/g, "").length < 8) {
       return NextResponse.json({ error: "Informe um telefone válido." }, { status: 400 });
+    }
+    if (!isValidCpf(cpf)) {
+      return NextResponse.json({ error: "Informe um CPF válido." }, { status: 400 });
     }
 
     const shippingAddress: ShippingAddress = {
@@ -156,6 +161,7 @@ export async function POST(req: NextRequest) {
       name,
       email,
       phone,
+      cpf,
       items,
       shippingAddress,
       shippingCents,

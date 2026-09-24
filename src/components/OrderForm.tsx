@@ -14,6 +14,7 @@ import {
   formatPrice,
   type PaperSize,
 } from "@/lib/pricing";
+import { formatCpf, isValidCpf } from "@/lib/cpf";
 import { Button } from "@/components/Button";
 import {
   ArrowRight,
@@ -136,6 +137,11 @@ export default function OrderForm() {
   const [cepError, setCepError] = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [contactError, setContactError] = useState<string | null>(null);
+  const [cpf, setCpf] = useState("");
+
+  function handleCpfChange(raw: string) {
+    setCpf(formatCpf(raw));
+  }
 
   // Prazo de entrega (urgência).
   const [rushOption, setRushOptionValue] = useState("standard");
@@ -318,6 +324,7 @@ export default function OrderForm() {
     if (!name) return "Informe seu nome completo.";
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Informe um e-mail válido.";
     if (phone.replace(/\D/g, "").length < 8) return "Informe um telefone válido.";
+    if (!isValidCpf(cpf)) return "Informe um CPF válido.";
     return null;
   }
 
@@ -879,6 +886,21 @@ export default function OrderForm() {
                   required
                   maxLength={30}
                   placeholder="(11) 91234-5678"
+                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-foreground/70" htmlFor="cpf">CPF</label>
+                <input
+                  id="cpf"
+                  name="cpf"
+                  type="text"
+                  inputMode="numeric"
+                  required
+                  maxLength={14}
+                  placeholder="000.000.000-00"
+                  value={cpf}
+                  onChange={(e) => handleCpfChange(e.target.value)}
                   className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>

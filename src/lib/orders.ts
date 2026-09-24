@@ -40,6 +40,7 @@ export interface OrderRecord {
   name: string;
   email: string;
   phone: string;
+  cpf: string;
   items: OrderItem[];
   shippingAddress: ShippingAddress;
   shippingCents: number;
@@ -69,6 +70,7 @@ function normalizeOrder(raw: Record<string, unknown>): OrderRecord {
     const paymentReference = (raw.paymentReference ?? raw.stripeSessionId) as string | undefined;
     return {
       ...(raw as unknown as OrderRecord),
+      cpf: (raw.cpf as string) ?? "",
       shippingAddress,
       shippingCents,
       paymentReference,
@@ -85,6 +87,7 @@ function normalizeOrder(raw: Record<string, unknown>): OrderRecord {
     name: raw.name as string,
     email: raw.email as string,
     phone: raw.phone as string,
+    cpf: (raw.cpf as string) ?? "",
     items: [
       {
         paperSize: raw.paperSize as PaperSize,

@@ -10,6 +10,7 @@ function makeOrder(overrides: Partial<OrderRecord> = {}): OrderRecord {
     name: "Cliente",
     email: "cliente@example.com",
     phone: "67999999999",
+    cpf: "111.444.777-35",
     items: [
       {
         paperSize: "A4",
