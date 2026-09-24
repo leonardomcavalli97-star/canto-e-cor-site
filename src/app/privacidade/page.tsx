@@ -47,7 +47,7 @@ export default function PrivacidadePage() {
           <ul className="mt-3 list-disc space-y-1 pl-5">
             <li>Produzir a aquarela encomendada, a partir da foto e das instruções enviadas;</li>
             <li>Combinar prazo, valores e forma de pagamento;</li>
-            <li>Identificar o cliente e prevenir fraude no pagamento (CPF);</li>
+            <li>Identificar o destinatário no envio pelos Correios (CPF);</li>
             <li>Enviar a peça no endereço informado;</li>
             <li>Avisar sobre o andamento do pedido (confirmação, pagamento, envio);</li>
             <li>Responder dúvidas enviadas por e-mail, formulário ou Instagram.</li>

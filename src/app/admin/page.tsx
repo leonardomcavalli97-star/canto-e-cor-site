@@ -1081,6 +1081,7 @@ function PrintLabelModal({ order, onClose }: { order: Order; onClose: () => void
             </p>
             <p>CEP {addr.cep}</p>
             <p className="mt-1 text-foreground/70">{order.phone}</p>
+            {order.cpf && <p className="text-foreground/70">CPF {order.cpf}</p>}
           </div>
           <div className="mt-4 border-t border-foreground/20 pt-4 text-foreground/80">
             <p className="text-xs tracking-wide text-muted uppercase">Conteúdo</p>
