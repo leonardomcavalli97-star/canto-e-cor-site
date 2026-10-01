@@ -261,6 +261,23 @@ function StatusBadge({ label, tone }: { label: string; tone: Tone }) {
   );
 }
 
+// O pedido tem duas facetas de status (pagamento e produção/entrega) que na
+// maioria dos estados dizem a mesma coisa ("Aguardando pagamento" nos dois,
+// por exemplo) — mostrar dois selos idênticos lado a lado só confundia.
+// Aqui só aparece um segundo selo quando ele realmente acrescenta informação
+// (pedido pago mas ainda em produção ou já enviado).
+function StatusBadges({ meta }: { meta: { order: string; payment: string; tone: Tone } }) {
+  if (meta.payment === meta.order) {
+    return <StatusBadge label={meta.order} tone={meta.tone} />;
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <StatusBadge label={meta.order} tone={meta.tone} />
+      <span className="text-xs whitespace-nowrap text-muted">{meta.payment}</span>
+    </div>
+  );
+}
+
 function Thumbnails({
   order,
   onOpen,
@@ -649,8 +666,7 @@ function OrderDetailPanel({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <StatusBadge label={meta.order} tone={meta.tone} />
-          <StatusBadge label={meta.payment} tone={meta.tone === "attention" ? "attention" : meta.tone} />
+          <StatusBadges meta={meta} />
         </div>
 
         {order.rushDays !== null && order.status !== "shipped" && order.status !== "cancelled" && (
@@ -945,10 +961,7 @@ function DesktopOrderRow({
         )}
       </td>
       <td className="px-4 py-3 align-middle">
-        <StatusBadge label={meta.payment} tone={meta.tone} />
-      </td>
-      <td className="px-4 py-3 align-middle">
-        <StatusBadge label={meta.order} tone={meta.tone} />
+        <StatusBadges meta={meta} />
       </td>
       <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-end gap-1">
@@ -1026,8 +1039,7 @@ function MobileOrderCard({
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
-        <StatusBadge label={meta.payment} tone={meta.tone} />
-        <StatusBadge label={meta.order} tone={meta.tone} />
+        <StatusBadges meta={meta} />
       </div>
       <div className="flex items-center justify-between text-xs text-muted">
         <span>{formatDate(order.createdAt)}</span>
@@ -1795,7 +1807,7 @@ export default function AdminPage() {
         />
       ) : (
         <>
-      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {SUMMARY_BUCKETS.map((bucket) => {
           const count = orders.filter((o) => bucket.match(o.status)).length;
           const active = statusFilter === bucket.key;
@@ -1813,27 +1825,17 @@ export default function AdminPage() {
             </button>
           );
         })}
-        <button
-          type="button"
-          onClick={() => {
-            const inProduction = orders.filter((o) => o.status === "paid");
-            const pieces = inProduction.reduce(
-              (sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0),
-              0
-            );
-            window.alert(
-              `${inProduction.length} pedido(s) em produção · ${pieces} peça(s) no total para pintar.`
-            );
-          }}
-          className="border border-border bg-surface p-4 text-left transition-colors hover:border-accent/40"
-        >
+        {/* Estatística informativa, não é um filtro — por isso não é um
+            botão clicável como os cards acima (nada acontecia ao clicar
+            além de repetir, num alerta, o número que já está na tela). */}
+        <div className="border border-border bg-surface p-4 text-left">
           <p className="font-serif-display text-2xl text-foreground">
             {orders
               .filter((o) => o.status === "paid")
               .reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0)}
           </p>
           <p className="mt-1 text-xs text-muted">Peças em produção</p>
-        </button>
+        </div>
       </div>
 
       <div className="mt-4 flex justify-end">
@@ -1948,8 +1950,7 @@ export default function AdminPage() {
                 <col className="w-[24%]" />
                 <col className="w-[10%]" />
                 <col className="w-[11%]" />
-                <col className="w-[12%]" />
-                <col className="w-[14%]" />
+                <col className="w-[26%]" />
                 <col className="w-[150px]" />
               </colgroup>
               <thead>
@@ -1973,7 +1974,6 @@ export default function AdminPage() {
                   <th className="px-4 py-2.5 text-left font-medium">Pedido</th>
                   <th className="px-4 py-2.5 text-left font-medium">Data</th>
                   <th className="px-4 py-2.5 text-right font-medium">Valor</th>
-                  <th className="px-4 py-2.5 text-left font-medium">Pagamento</th>
                   <th className="px-4 py-2.5 text-left font-medium">Status</th>
                   <th className="px-4 py-2.5 text-right font-medium">Ações</th>
                 </tr>
