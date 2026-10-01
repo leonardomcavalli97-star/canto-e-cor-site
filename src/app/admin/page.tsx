@@ -116,6 +116,10 @@ function formatDate(iso: string) {
     d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function formatDateShort(iso: string) {
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
 function getRushDeadline(order: Order): Date | null {
   if (order.rushDays === null) return null;
   const start = new Date(order.paidAt ?? order.createdAt);
@@ -144,9 +148,47 @@ const URGENCY_CLASSES: Record<"overdue" | "soon" | "normal", string> = {
 
 function urgencyLabel(deadline: Date, now: number) {
   const d = daysUntil(deadline, now);
-  if (d < 0) return `atrasado ${Math.abs(d)} ${Math.abs(d) === 1 ? "dia" : "dias"}`;
-  if (d === 0) return "vence hoje";
-  return `vence em ${d} ${d === 1 ? "dia" : "dias"}`;
+  if (d < 0) return `Atrasado ${Math.abs(d)} ${Math.abs(d) === 1 ? "dia" : "dias"}`;
+  if (d === 0) return "Vence hoje";
+  return `Entrega em ${d} ${d === 1 ? "dia" : "dias"}`;
+}
+
+function isActiveOrder(status: string) {
+  return status !== "shipped" && status !== "cancelled";
+}
+
+function isUnpaidOrder(status: string) {
+  return status === "pending_quote" || status === "pending_payment" || status === "pix_pending";
+}
+
+function startOfWeek(now: number) {
+  const d = new Date(now);
+  const day = d.getDay();
+  const diffToMonday = day === 0 ? 6 : day - 1;
+  d.setDate(d.getDate() - diffToMonday);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+const QUICK_FILTERS: { key: string; label: string }[] = [
+  { key: "all", label: "Todos" },
+  { key: "overdue", label: "Atrasados" },
+  { key: "express", label: "Expressos" },
+  { key: "week", label: "Esta semana" },
+  { key: "unpaid", label: "Não pagos" },
+];
+
+function matchesQuickFilter(order: Order, quickFilter: string, now: number) {
+  if (quickFilter === "all") return true;
+  if (quickFilter === "unpaid") return isUnpaidOrder(order.status);
+  if (quickFilter === "express") return order.rushDays !== null;
+  if (quickFilter === "week") return new Date(order.createdAt).getTime() >= startOfWeek(now);
+  if (quickFilter === "overdue") {
+    if (order.rushDays === null || !isActiveOrder(order.status)) return false;
+    const deadline = getRushDeadline(order);
+    return !!deadline && rushUrgency(deadline, now) === "overdue";
+  }
+  return true;
 }
 
 function itemSummary(item: OrderItem) {
@@ -162,6 +204,20 @@ function orderSummary(order: Order) {
     return `${itemSummary(item)}${item.quantity > 1 ? ` · Qtd ${item.quantity}` : ""}`;
   }
   return `${order.items.length} desenhos · ${totalQty} peças`;
+}
+
+function OrderSummaryLines({ order }: { order: Order }) {
+  const totalQty = order.items.reduce((s, i) => s + i.quantity, 0);
+  const firstLine =
+    order.items.length === 1 ? itemSummary(order.items[0]) : `${order.items.length} desenhos`;
+  return (
+    <div className="min-w-0">
+      <p className="truncate text-sm text-foreground/80">{firstLine}</p>
+      <p className="truncate text-xs text-muted">
+        {totalQty} {totalQty === 1 ? "peça" : "peças"}
+      </p>
+    </div>
+  );
 }
 
 function paymentMethodLabel(order: Order) {
@@ -261,20 +317,33 @@ function StatusBadge({ label, tone }: { label: string; tone: Tone }) {
   );
 }
 
-// O pedido tem duas facetas de status (pagamento e produção/entrega) que na
-// maioria dos estados dizem a mesma coisa ("Aguardando pagamento" nos dois,
-// por exemplo) — mostrar dois selos idênticos lado a lado só confundia.
-// Aqui só aparece um segundo selo quando ele realmente acrescenta informação
-// (pedido pago mas ainda em produção ou já enviado).
-function StatusBadges({ meta }: { meta: { order: string; payment: string; tone: Tone } }) {
-  if (meta.payment === meta.order) {
-    return <StatusBadge label={meta.order} tone={meta.tone} />;
+// Produção (etapa do pedido) e pagamento (foi pago ou não) são perguntas
+// diferentes — mostrar as duas junto do mesmo selo confundia. Aqui cada uma
+// tem seu próprio indicador, pensado pra ser lido rápido: a bolinha colorida
+// do StatusBadge já conta a etapa, e o pagamento é só um "pago ou não".
+function ProductionBadge({ order }: { order: Order }) {
+  const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
+  return <StatusBadge label={meta.order} tone={meta.tone} />;
+}
+
+function PaymentIndicator({ order }: { order: Order }) {
+  if (order.status === "cancelled") {
+    return <span className="text-xs text-muted line-through decoration-muted/50">Cancelado</span>;
+  }
+  if (order.status === "pending_quote") {
+    return <span className="text-xs text-muted">A combinar</span>;
+  }
+  if (order.status === "paid" || order.status === "shipped") {
+    return (
+      <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+        <Check size={12} /> Pago
+      </span>
+    );
   }
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <StatusBadge label={meta.order} tone={meta.tone} />
-      <span className="text-xs whitespace-nowrap text-muted">{meta.payment}</span>
-    </div>
+    <span className="flex items-center gap-1.5 text-xs text-muted">
+      <span className="h-2 w-2 shrink-0 rounded-full border border-current" /> Pendente
+    </span>
   );
 }
 
@@ -614,6 +683,95 @@ function PaidAtEditor({ orderId, paidAt }: { orderId: string; paidAt?: string })
   );
 }
 
+const PRODUCTION_STAGES = [
+  "Pedido recebido",
+  "Esboço",
+  "Aguardando aprovação",
+  "Pintura",
+  "Finalização",
+  "Embalagem",
+  "Enviado",
+];
+
+// Representação visual apenas — o banco hoje só distingue "recebido",
+// "pago/em produção" e "enviado". As 5 etapas do meio (esboço, aprovação,
+// pintura, finalização, embalagem) não têm um campo próprio ainda, então
+// aparecem como uma prévia (contorno tracejado), não como progresso real.
+type StageStyle = "done" | "current" | "preview" | "future";
+
+function stageStyle(order: Order, i: number): StageStyle {
+  if (order.status === "shipped") return i < 6 ? "done" : "current";
+  if (order.status === "paid") {
+    if (i === 0) return "done";
+    if (i >= 1 && i <= 5) return "preview";
+    return "future";
+  }
+  return i === 0 ? "current" : "future";
+}
+
+function ProductionStepper({ order }: { order: Order }) {
+  if (order.status === "cancelled") {
+    return (
+      <div className="border border-border bg-surface p-4">
+        <p className="text-sm font-medium text-muted line-through decoration-muted/50">
+          Pedido cancelado
+        </p>
+      </div>
+    );
+  }
+
+  const hasPreview = order.status === "paid";
+
+  return (
+    <div className="border border-border bg-surface p-4">
+      <div className="overflow-x-auto">
+        <div className="flex min-w-max justify-between gap-4 sm:gap-1">
+        {PRODUCTION_STAGES.map((stage, i) => {
+          const style = stageStyle(order, i);
+          return (
+            <div key={stage} className="flex w-16 shrink-0 flex-col items-center gap-1.5 text-center sm:flex-1">
+              <span
+                title={
+                  style === "preview"
+                    ? `${stage}: sub-etapa de "Em produção" ainda não registrada no sistema`
+                    : stage
+                }
+                className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                  style === "preview"
+                    ? "border border-dashed border-muted/50 bg-transparent"
+                    : style === "done"
+                      ? "bg-accent-navy"
+                      : style === "current"
+                        ? "bg-accent"
+                        : "bg-border"
+                }`}
+              />
+              <span
+                className={`text-[10px] leading-tight ${
+                  style === "preview"
+                    ? "text-muted/50"
+                    : style === "current"
+                      ? "font-medium text-foreground"
+                      : "text-muted"
+                }`}
+              >
+                {stage}
+              </span>
+            </div>
+          );
+        })}
+        </div>
+      </div>
+      {hasPreview && (
+        <p className="mt-3 text-center text-xs text-muted">
+          Etapas tracejadas são uma prévia visual — o sistema ainda não registra em qual sub-etapa da
+          produção o pedido está.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function OrderDetailPanel({
   order,
   now,
@@ -633,7 +791,6 @@ function OrderDetailPanel({
   onCancel: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
-  const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
   const hasAddress = !!order.shippingAddress?.cep;
   const [showLabel, setShowLabel] = useState(false);
   const rushDeadline = getRushDeadline(order);
@@ -665,8 +822,23 @@ function OrderDetailPanel({
           </button>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <StatusBadges meta={meta} />
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+          <div>
+            <p className="text-[11px] tracking-wide text-muted uppercase">Produção</p>
+            <div className="mt-1">
+              <ProductionBadge order={order} />
+            </div>
+          </div>
+          <div>
+            <p className="text-[11px] tracking-wide text-muted uppercase">Pagamento</p>
+            <div className="mt-1">
+              <PaymentIndicator order={order} />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <ProductionStepper order={order} />
         </div>
 
         {order.rushDays !== null && order.status !== "shipped" && order.status !== "cancelled" && (
@@ -680,7 +852,7 @@ function OrderDetailPanel({
               <p className="font-medium">Prazo expresso: em até {order.rushDays} dias</p>
               {rushDeadline && (
                 <p className="text-xs opacity-80">
-                  Vence em {formatDate(rushDeadline.toISOString())} · {urgencyLabel(rushDeadline, now)}
+                  {formatDateShort(rushDeadline.toISOString())} · {urgencyLabel(rushDeadline, now)}
                 </p>
               )}
             </div>
@@ -897,18 +1069,35 @@ type RowProps = {
   onToggleSelect: (id: string) => void;
 };
 
-function RushIndicator({ order, now }: { order: Order; now: number }) {
-  if (order.rushDays === null) return null;
-  if (order.status === "shipped" || order.status === "cancelled") return null;
+// Coluna "Prazo": o que ela mostra depende do que é conhecido com certeza —
+// pedido enviado não tem mais prazo que importe, pedido sem urgência expressa
+// só mostra a data do pedido, e só pedidos com prazo expresso ativo ganham o
+// destaque de atrasado/vence em breve.
+function PrazoCell({ order, now }: { order: Order; now: number }) {
+  if (order.status === "cancelled") {
+    return <span className="text-xs text-muted">—</span>;
+  }
+  if (order.status === "shipped") {
+    return (
+      <div className="text-xs leading-snug">
+        <p className="font-medium text-foreground">Enviado</p>
+        <p className="text-muted">{formatDateShort(order.createdAt)}</p>
+      </div>
+    );
+  }
+  if (order.rushDays === null) {
+    return <p className="text-xs whitespace-nowrap text-muted">{formatDateShort(order.createdAt)}</p>;
+  }
   const deadline = getRushDeadline(order);
+  if (!deadline) return null;
   const urgency = rushUrgency(deadline, now);
-  const textClass =
+  const labelClass =
     urgency === "overdue" ? "text-accent" : urgency === "soon" ? "text-amber-800" : "text-muted";
   return (
-    <p className={`mt-0.5 flex items-center gap-1 truncate text-xs ${textClass}`}>
-      <Clock size={11} className="shrink-0" />
-      {order.rushDays}d{deadline ? ` · ${urgencyLabel(deadline, now)}` : ""}
-    </p>
+    <div className="text-xs leading-snug">
+      <p className="whitespace-nowrap text-foreground">{formatDateShort(deadline.toISOString())}</p>
+      <p className={`font-medium whitespace-nowrap ${labelClass}`}>{urgencyLabel(deadline, now)}</p>
+    </div>
   );
 }
 
@@ -924,8 +1113,6 @@ function DesktopOrderRow({
   selected,
   onToggleSelect,
 }: RowProps) {
-  const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
-
   return (
     <tr onClick={onOpenDetails} className="cursor-pointer border-b border-border last:border-b-0 hover:bg-surface/60">
       <td className="px-3 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
@@ -944,14 +1131,17 @@ function DesktopOrderRow({
       <td className="min-w-0 px-4 py-3 align-middle">
         <div className="flex min-w-0 items-center gap-2">
           <Thumbnails order={order} onOpen={onOpenImage} />
-          <div className="min-w-0">
-            <p className="truncate text-sm text-foreground/80">{orderSummary(order)}</p>
-            <RushIndicator order={order} now={now} />
-          </div>
+          <OrderSummaryLines order={order} />
         </div>
       </td>
-      <td className="px-4 py-3 align-middle text-xs whitespace-nowrap text-muted">
-        {formatDate(order.createdAt)}
+      <td className="px-4 py-3 align-middle">
+        <PrazoCell order={order} now={now} />
+      </td>
+      <td className="px-4 py-3 align-middle">
+        <ProductionBadge order={order} />
+      </td>
+      <td className="px-4 py-3 align-middle">
+        <PaymentIndicator order={order} />
       </td>
       <td className="px-4 py-3 text-right align-middle text-sm font-medium whitespace-nowrap text-foreground">
         {order.totalPriceCents === null ? (
@@ -960,17 +1150,14 @@ function DesktopOrderRow({
           formatPrice(order.totalPriceCents)
         )}
       </td>
-      <td className="px-4 py-3 align-middle">
-        <StatusBadges meta={meta} />
-      </td>
       <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-end gap-1">
           <button
             type="button"
             onClick={onOpenDetails}
-            className="px-2 py-1.5 text-xs tracking-wide text-accent hover:underline"
+            className="flex items-center gap-1 px-2 py-1.5 text-xs tracking-wide text-accent hover:underline"
           >
-            Ver detalhes
+            Abrir pedido <span aria-hidden>→</span>
           </button>
           <ActionsMenu
             order={order}
@@ -998,12 +1185,10 @@ function MobileOrderCard({
   selected,
   onToggleSelect,
 }: RowProps) {
-  const meta = STATUS_META[order.status] ?? { order: order.status, payment: order.status, tone: "waiting" as Tone };
-
   return (
     <li
       onClick={onOpenDetails}
-      className="flex cursor-pointer flex-col gap-2 border-b border-border p-4 last:border-b-0 hover:bg-surface/60"
+      className="flex cursor-pointer flex-col gap-3 border-b border-border p-4 last:border-b-0 hover:bg-surface/60"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2">
@@ -1033,16 +1218,25 @@ function MobileOrderCard({
       </div>
       <div className="flex items-center gap-2">
         <Thumbnails order={order} onOpen={onOpenImage} />
-        <div className="min-w-0">
-          <p className="truncate text-sm text-foreground/80">{orderSummary(order)}</p>
-          <RushIndicator order={order} now={now} />
+        <OrderSummaryLines order={order} />
+      </div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <PrazoCell order={order} now={now} />
+        <div>
+          <p className="text-[10px] tracking-wide text-muted uppercase">Produção</p>
+          <div className="mt-1">
+            <ProductionBadge order={order} />
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] tracking-wide text-muted uppercase">Pagamento</p>
+          <div className="mt-1">
+            <PaymentIndicator order={order} />
+          </div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <StatusBadges meta={meta} />
-      </div>
       <div className="flex items-center justify-between text-xs text-muted">
-        <span>{formatDate(order.createdAt)}</span>
+        <span>{formatDateShort(order.createdAt)}</span>
         <span className="text-sm font-medium text-foreground">
           {order.totalPriceCents === null ? (
             <span className="text-accent">A combinar</span>
@@ -1392,6 +1586,75 @@ function MonthlyReport({ orders }: { orders: Order[] }) {
   );
 }
 
+// Painel compacto de "o que precisa da minha atenção agora": atrasados
+// primeiro, depois os que vencem em breve — sem ocupar a tela toda, só os
+// mais urgentes com um link direto pro pedido.
+function AttentionPanel({
+  urgentOrders,
+  now,
+  onOpenOrder,
+}: {
+  urgentOrders: { order: Order; deadline: Date }[];
+  now: number;
+  onOpenOrder: (id: string) => void;
+}) {
+  const overdue = urgentOrders.filter(({ deadline }) => rushUrgency(deadline, now) === "overdue");
+  const soon = urgentOrders.filter(({ deadline }) => rushUrgency(deadline, now) !== "overdue");
+  const sorted = [...overdue, ...soon];
+  const visible = sorted.slice(0, 4);
+  const hiddenCount = sorted.length - visible.length;
+
+  return (
+    <div className="mt-6 border border-accent/30 bg-accent/5 p-4">
+      <p className="flex items-center gap-2 text-sm font-medium text-accent">
+        <AlertTriangle size={16} />
+        {overdue.length > 0
+          ? `${overdue.length} pedido${overdue.length === 1 ? "" : "s"} atrasado${overdue.length === 1 ? "" : "s"}`
+          : "Atenção"}
+        {overdue.length > 0 && soon.length > 0 && ` · ${soon.length} vencendo em breve`}
+      </p>
+      <ul className="mt-3 space-y-2">
+        {visible.map(({ order, deadline }) => {
+          const urgency = rushUrgency(deadline, now);
+          return (
+            <li
+              key={order.id}
+              className="flex flex-wrap items-center justify-between gap-2 border border-border bg-surface px-3 py-2 text-sm"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-medium text-foreground">{order.name}</p>
+                <p className="truncate text-xs text-muted">{orderSummary(order)}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <span
+                  className={`text-xs font-medium whitespace-nowrap ${
+                    urgency === "overdue" ? "text-accent" : "text-amber-800"
+                  }`}
+                >
+                  {urgencyLabel(deadline, now)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onOpenOrder(order.id)}
+                  className="flex items-center gap-1 text-xs text-accent hover:underline"
+                >
+                  Abrir pedido <span aria-hidden>→</span>
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {hiddenCount > 0 && (
+        <p className="mt-2 text-xs text-muted">
+          +{hiddenCount} outro{hiddenCount === 1 ? "" : "s"} pedido{hiddenCount === 1 ? "" : "s"} precisando
+          de atenção.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -1421,6 +1684,8 @@ export default function AdminPage() {
   const [productFilter, setProductFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
+  const [quickFilter, setQuickFilter] = useState("all");
+  const [showNewOrderNotice, setShowNewOrderNotice] = useState(false);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -1645,6 +1910,7 @@ export default function AdminPage() {
     const dateLimits: Record<string, number> = { "7d": 7, "30d": 30 };
 
     let list = orders.filter((o) => {
+      if (!matchesQuickFilter(o, quickFilter, now)) return false;
       if (!matchesStatusFilter(o.status, statusFilter)) return false;
       if (productFilter !== "all" && !o.items.some((i) => i.theme === productFilter)) return false;
       if (dateFilter !== "all" && dateFilter !== "today") {
@@ -1689,7 +1955,7 @@ export default function AdminPage() {
     });
 
     return list;
-  }, [orders, search, statusFilter, productFilter, dateFilter, sortBy, now]);
+  }, [orders, search, statusFilter, productFilter, dateFilter, sortBy, quickFilter, now]);
 
   const selectedOrder = orders.find((o) => o.id === selectedId) ?? null;
 
@@ -1731,61 +1997,56 @@ export default function AdminPage() {
             Gerencie pedidos, pagamentos, produção e entregas.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-end gap-2">
           <button
             type="button"
-            onClick={() => setView(view === "orders" ? "report" : "orders")}
-            className={`flex items-center gap-1.5 border px-3 py-1.5 text-xs tracking-wide uppercase ${
-              view === "report"
-                ? "border-accent bg-accent text-white"
-                : "border-accent text-accent hover:bg-accent hover:text-white"
-            }`}
+            onClick={() => setShowNewOrderNotice(true)}
+            className="flex items-center gap-1.5 bg-accent px-4 py-2 text-xs font-medium tracking-wide text-white uppercase hover:bg-accent-dark"
           >
-            <BarChart3 size={14} /> {view === "orders" ? "Relatório mensal" : "Ver pedidos"}
+            + Novo pedido
           </button>
-          <button
-            type="button"
-            onClick={() => setView(view === "trash" ? "orders" : "trash")}
-            className={`flex items-center gap-1.5 border px-3 py-1.5 text-xs tracking-wide uppercase ${
-              view === "trash"
-                ? "border-accent bg-accent text-white"
-                : "border-border text-foreground/70 hover:border-accent hover:text-accent"
-            }`}
-          >
-            <Archive size={14} /> {view === "trash" ? "Ver pedidos" : "Lixeira"}
-          </button>
-          <button type="button" onClick={handleLogout} className="ml-2 text-xs text-foreground/60 underline">
-            Sair
-          </button>
+          <div className="flex items-center gap-3 text-xs text-foreground/60">
+            <button
+              type="button"
+              onClick={() => setView(view === "orders" ? "report" : "orders")}
+              className={`flex items-center gap-1 tracking-wide uppercase hover:text-accent ${
+                view === "report" ? "font-medium text-accent" : ""
+              }`}
+            >
+              <BarChart3 size={13} /> {view === "orders" ? "Relatório mensal" : "Ver pedidos"}
+            </button>
+            <span className="text-border">·</span>
+            <button
+              type="button"
+              onClick={() => setView(view === "trash" ? "orders" : "trash")}
+              className={`flex items-center gap-1 tracking-wide uppercase hover:text-accent ${
+                view === "trash" ? "font-medium text-accent" : ""
+              }`}
+            >
+              <Archive size={13} /> {view === "trash" ? "Ver pedidos" : "Lixeira"}
+            </button>
+            <span className="text-border">·</span>
+            <button type="button" onClick={handleLogout} className="underline hover:text-accent">
+              Sair
+            </button>
+          </div>
         </div>
       </div>
 
-      {urgentOrders.length > 0 && (
-        <div className="mt-6 border border-accent/40 bg-accent/5 p-4">
-          <p className="flex items-center gap-2 text-sm font-medium text-accent">
-            <AlertTriangle size={16} /> Prazos expressos vencendo
-          </p>
-          <ul className="mt-2 space-y-1 text-sm text-foreground/80">
-            {urgentOrders.map(({ order, deadline }) => {
-              return (
-                <li key={order.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(order.id)}
-                    className="underline decoration-dotted hover:text-accent"
-                  >
-                    {order.name}
-                  </button>{" "}
-                  — {urgencyLabel(deadline, now)} ({formatDate(deadline.toISOString())})
-                  {order.status !== "paid" && (
-                    <span className="ml-1.5 text-xs text-accent/80">· ainda não pago</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+      {showNewOrderNotice && (
+        <div className="mt-6 flex items-center justify-between gap-3 border border-border bg-surface p-3 text-sm text-foreground/70">
+          <span>Criação manual de pedidos ainda não está disponível — em breve.</span>
+          <button
+            type="button"
+            onClick={() => setShowNewOrderNotice(false)}
+            className="text-xs text-muted underline"
+          >
+            Fechar
+          </button>
         </div>
       )}
+
+      {urgentOrders.length > 0 && <AttentionPanel urgentOrders={urgentOrders} now={now} onOpenOrder={setSelectedId} />}
 
       {actionError && (
         <div className="mt-6 flex items-center justify-between gap-3 border border-accent/40 bg-accent/5 p-3 text-sm text-accent">
@@ -1807,35 +2068,81 @@ export default function AdminPage() {
         />
       ) : (
         <>
-      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {SUMMARY_BUCKETS.map((bucket) => {
-          const count = orders.filter((o) => bucket.match(o.status)).length;
-          const active = statusFilter === bucket.key;
-          return (
-            <button
-              key={bucket.key}
-              type="button"
-              onClick={() => setStatusFilter(active ? "all" : bucket.key)}
-              className={`border p-4 text-left transition-colors ${
-                active ? "border-accent bg-accent/5" : "border-border bg-surface hover:border-accent/40"
-              }`}
-            >
-              <p className="font-serif-display text-2xl text-foreground">{count}</p>
-              <p className="mt-1 text-xs text-muted">{bucket.label}</p>
-            </button>
-          );
-        })}
-        {/* Estatística informativa, não é um filtro — por isso não é um
-            botão clicável como os cards acima (nada acontecia ao clicar
-            além de repetir, num alerta, o número que já está na tela). */}
-        <div className="border border-border bg-surface p-4 text-left">
+      <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="border border-border bg-surface p-5">
           <p className="font-serif-display text-2xl text-foreground">
-            {orders
-              .filter((o) => o.status === "paid")
-              .reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0)}
+            {orders.filter((o) => isActiveOrder(o.status)).length}
           </p>
-          <p className="mt-1 text-xs text-muted">Peças em produção</p>
+          <p className="mt-1 text-xs text-muted">Pedidos ativos</p>
         </div>
+        <button
+          type="button"
+          onClick={() => setQuickFilter(quickFilter === "unpaid" ? "all" : "unpaid")}
+          className={`border p-5 text-left transition-colors ${
+            quickFilter === "unpaid" ? "border-accent bg-accent/5" : "border-border bg-surface hover:border-accent/40"
+          }`}
+        >
+          <p className="font-serif-display text-2xl text-foreground">
+            {orders.filter((o) => isUnpaidOrder(o.status)).length}
+          </p>
+          <p className="mt-1 text-xs text-muted">Aguardando pagamento</p>
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === "paid" ? "all" : "paid")}
+          className={`border p-5 text-left transition-colors ${
+            statusFilter === "paid" ? "border-accent bg-accent/5" : "border-border bg-surface hover:border-accent/40"
+          }`}
+        >
+          <p className="font-serif-display text-2xl text-foreground">
+            {orders.filter((o) => o.status === "paid").length}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Em produção
+            <span className="ml-1.5 text-muted/70">
+              ·{" "}
+              {orders
+                .filter((o) => o.status === "paid")
+                .reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0)}{" "}
+              peças
+            </span>
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("report")}
+          className="border border-border bg-surface p-5 text-left transition-colors hover:border-accent/40"
+        >
+          <p className="font-serif-display text-2xl text-accent">
+            {formatPrice(
+              orders
+                .filter(
+                  (o) =>
+                    (o.status === "paid" || o.status === "shipped") &&
+                    monthKey(new Date(o.paidAt ?? o.createdAt)) === monthKey(new Date(now))
+                )
+                .reduce((sum, o) => sum + (o.totalPriceCents ?? 0) - (o.discountCents ?? 0), 0)
+            )}
+          </p>
+          <p className="mt-1 text-xs text-muted">Faturamento do mês</p>
+        </button>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {QUICK_FILTERS.map((qf) => (
+          <button
+            key={qf.key}
+            type="button"
+            onClick={() => setQuickFilter(qf.key)}
+            className={`border px-3 py-1.5 text-xs tracking-wide uppercase transition-colors ${
+              quickFilter === qf.key
+                ? "border-accent bg-accent text-white"
+                : "border-border bg-surface text-foreground/70 hover:border-accent/40"
+            }`}
+          >
+            {qf.label}
+          </button>
+        ))}
       </div>
 
       <div className="mt-4 flex justify-end">
@@ -1945,13 +2252,14 @@ export default function AdminPage() {
           <>
             <table className="hidden w-full table-fixed border-collapse lg:table">
               <colgroup>
-                <col className="w-[36px]" />
-                <col className="w-[23%]" />
-                <col className="w-[24%]" />
+                <col className="w-[32px]" />
+                <col className="w-[18%]" />
+                <col className="w-[19%]" />
+                <col className="w-[12%]" />
+                <col className="w-[13%]" />
                 <col className="w-[10%]" />
-                <col className="w-[11%]" />
-                <col className="w-[26%]" />
-                <col className="w-[150px]" />
+                <col className="w-[10%]" />
+                <col className="w-[140px]" />
               </colgroup>
               <thead>
                 <tr className="border-b border-border bg-background/60 text-[11px] font-medium tracking-wide text-muted uppercase">
@@ -1972,9 +2280,10 @@ export default function AdminPage() {
                   </th>
                   <th className="px-4 py-2.5 text-left font-medium">Cliente</th>
                   <th className="px-4 py-2.5 text-left font-medium">Pedido</th>
-                  <th className="px-4 py-2.5 text-left font-medium">Data</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Prazo</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Produção</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Pagamento</th>
                   <th className="px-4 py-2.5 text-right font-medium">Valor</th>
-                  <th className="px-4 py-2.5 text-left font-medium">Status</th>
                   <th className="px-4 py-2.5 text-right font-medium">Ações</th>
                 </tr>
               </thead>
