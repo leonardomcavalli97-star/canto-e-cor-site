@@ -653,7 +653,7 @@ function OrderDetailPanel({
           <StatusBadge label={meta.payment} tone={meta.tone === "attention" ? "attention" : meta.tone} />
         </div>
 
-        {order.rushDays !== null && (
+        {order.rushDays !== null && order.status !== "shipped" && order.status !== "cancelled" && (
           <div
             className={`mt-4 flex items-center gap-3 border p-3 ${
               URGENCY_CLASSES[urgency ?? "normal"]
@@ -883,6 +883,7 @@ type RowProps = {
 
 function RushIndicator({ order, now }: { order: Order; now: number }) {
   if (order.rushDays === null) return null;
+  if (order.status === "shipped" || order.status === "cancelled") return null;
   const deadline = getRushDeadline(order);
   const urgency = rushUrgency(deadline, now);
   const textClass =
