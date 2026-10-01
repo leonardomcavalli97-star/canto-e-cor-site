@@ -1,6 +1,7 @@
 import { PAPER_SIZES, THEME_LABELS } from "./pricing";
 import { getOrder, getPayableAmountCents, recordAutomaticPayment, type OrderRecord } from "./orders";
 import { sendPaymentConfirmedEmail } from "./email";
+import { markCouponUsed } from "./coupons";
 
 const API_BASE = "https://api.checkout.infinitepay.io";
 
@@ -155,6 +156,12 @@ export async function confirmInfinitePayPayment(params: {
     receiptUrl: params.receiptUrl,
   });
   if (alreadyPaid) return "already_paid";
+
+  if (order.couponCode) {
+    await markCouponUsed(order.id).catch((error) => {
+      console.error("Falha ao marcar cupom como usado", order.id, error);
+    });
+  }
 
   try {
     await sendPaymentConfirmedEmail(order.email, order.name);

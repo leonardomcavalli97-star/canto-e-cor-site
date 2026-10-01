@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrder, setOrderCoupon, getPayableAmountCents } from "@/lib/orders";
-import { findCoupon, calculateDiscountCents } from "@/lib/coupons";
+import { findCoupon, calculateDiscountCents, isCouponUsed } from "@/lib/coupons";
 
 export async function POST(
   req: NextRequest,
@@ -24,6 +24,9 @@ export async function POST(
   const coupon = findCoupon(code);
   if (!coupon) {
     return NextResponse.json({ error: "Cupom inválido." }, { status: 404 });
+  }
+  if (order.couponCode !== coupon.code && (await isCouponUsed())) {
+    return NextResponse.json({ error: "Este cupom já foi utilizado." }, { status: 409 });
   }
 
   const discountCents = calculateDiscountCents(order.totalPriceCents, coupon.percentOff);

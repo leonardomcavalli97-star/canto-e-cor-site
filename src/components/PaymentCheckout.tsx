@@ -237,7 +237,7 @@ export default function PaymentCheckout({ orderId }: { orderId: string }) {
                         void handleApplyCoupon();
                       }
                     }}
-                    placeholder="Ex: CANTOECOR10"
+                    placeholder="ATELIE10"
                     className="w-full min-w-0 border border-border bg-background px-2 py-1.5 text-sm uppercase text-foreground outline-none focus:border-accent"
                   />
                   <button
