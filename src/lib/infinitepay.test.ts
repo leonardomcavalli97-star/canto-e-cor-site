@@ -57,4 +57,12 @@ describe("buildCheckoutItems", () => {
       { quantity: 1, price: 99999, description: "Aquarela personalizada - Canto e Cor" },
     ]);
   });
+
+  it("charges the discounted amount, not the full total, when a coupon was applied", () => {
+    const order = makeOrder({ discountCents: 5000 });
+    const total = order.totalPriceCents!;
+    expect(buildCheckoutItems(order)).toEqual([
+      { quantity: 1, price: total - 5000, description: "Aquarela personalizada - Canto e Cor" },
+    ]);
+  });
 });

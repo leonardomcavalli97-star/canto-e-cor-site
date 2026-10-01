@@ -45,6 +45,8 @@ export interface OrderRecord {
   shippingAddress: ShippingAddress;
   shippingCents: number;
   totalPriceCents: number | null;
+  couponCode?: string;
+  discountCents?: number;
   paymentReference?: string;
   paymentMethod?: "pix" | "credit_card";
   installments?: number;
@@ -196,6 +198,31 @@ export async function recordAutomaticPayment(
   record.installments = payment.installments;
   if (payment.receiptUrl) record.receiptUrl = payment.receiptUrl;
   return { order: await writeOrder(record), alreadyPaid: false };
+}
+
+export async function setOrderCoupon(
+  id: string,
+  coupon: { code: string; discountCents: number } | null
+) {
+  const raw = await readOrderJson(orderPathname(id));
+  if (!raw) throw new Error("Pedido não encontrado.");
+  const record = normalizeOrder(raw);
+  if (coupon) {
+    record.couponCode = coupon.code;
+    record.discountCents = coupon.discountCents;
+  } else {
+    delete record.couponCode;
+    delete record.discountCents;
+  }
+  return writeOrder(record);
+}
+
+// Valor efetivamente cobrado: o total do pedido menos o desconto do cupom
+// (se houver). `totalPriceCents` em si nunca é alterado pelo cupom, para que
+// o desconto possa ser reaplicado/removido sem perder o valor original.
+export function getPayableAmountCents(order: OrderRecord): number {
+  if (order.totalPriceCents === null) return 0;
+  return Math.max(0, order.totalPriceCents - (order.discountCents ?? 0));
 }
 
 export async function setOrderNotes(id: string, notes: string) {

@@ -1,5 +1,5 @@
 import { PAPER_SIZES, THEME_LABELS } from "./pricing";
-import { getOrder, recordAutomaticPayment, type OrderRecord } from "./orders";
+import { getOrder, getPayableAmountCents, recordAutomaticPayment, type OrderRecord } from "./orders";
 import { sendPaymentConfirmedEmail } from "./email";
 
 const API_BASE = "https://api.checkout.infinitepay.io";
@@ -11,8 +11,11 @@ export function getInfinitePayHandle(): string | null {
   return handle || null;
 }
 
+// Quando há cupom, o total pago difere da soma dos itens, então cai no
+// fallback abaixo e manda um único item pelo valor já descontado — a
+// InfinitePay não precisa saber o preço "cheio" de cada peça.
 export function buildCheckoutItems(order: OrderRecord): CheckoutItem[] {
-  const total = order.totalPriceCents ?? 0;
+  const total = getPayableAmountCents(order);
   const items: CheckoutItem[] = [];
 
   for (const item of order.items) {
@@ -143,7 +146,7 @@ export async function confirmInfinitePayPayment(params: {
     slug: params.slug,
   });
   if (!check.paid) return "not_paid";
-  if (check.amount !== order.totalPriceCents) return "invalid";
+  if (check.amount !== getPayableAmountCents(order)) return "invalid";
 
   const { alreadyPaid } = await recordAutomaticPayment(order.id, {
     paymentReference: `infinitepay:${params.transactionNsu}`,

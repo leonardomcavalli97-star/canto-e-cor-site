@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, CreditCard, Loader2, QrCode } from "lucide-react";
+import { CheckCircle2, CreditCard, Loader2, QrCode, Tag } from "lucide-react";
 import { MAX_INSTALLMENTS, formatBRL } from "@/lib/pricing";
 
 type PaymentData = {
   amountCents: number;
+  subtotalCents: number;
+  discountCents: number;
+  couponCode: string | null;
   name: string;
   status: string;
   paymentAvailable: boolean;
@@ -18,6 +21,10 @@ export default function PaymentCheckout({ orderId }: { orderId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState<"pix" | "card" | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
+  const [couponOpen, setCouponOpen] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [returningFromCheckout] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -72,6 +79,62 @@ export default function PaymentCheckout({ orderId }: { orderId: string }) {
       clearInterval(intervalId);
     };
   }, [orderId]);
+
+  async function handleApplyCoupon() {
+    if (!couponInput.trim()) return;
+    setCouponBusy(true);
+    setCouponError(null);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/coupon`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponInput }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setCouponError(json.error ?? "Cupom inválido.");
+        return;
+      }
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              amountCents: json.amountCents,
+              subtotalCents: json.subtotalCents,
+              discountCents: json.discountCents,
+              couponCode: json.couponCode,
+            }
+          : prev
+      );
+      setCouponInput("");
+    } catch {
+      setCouponError("Falha de conexão. Tente novamente.");
+    } finally {
+      setCouponBusy(false);
+    }
+  }
+
+  async function handleRemoveCoupon() {
+    setCouponBusy(true);
+    setCouponError(null);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/coupon`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) {
+        setCouponError(json.error ?? "Não foi possível remover o cupom.");
+        return;
+      }
+      setData((prev) =>
+        prev
+          ? { ...prev, amountCents: json.amountCents, subtotalCents: json.subtotalCents, discountCents: 0, couponCode: null }
+          : prev
+      );
+    } catch {
+      setCouponError("Falha de conexão. Tente novamente.");
+    } finally {
+      setCouponBusy(false);
+    }
+  }
 
   async function handlePay(method: "pix" | "card") {
     setStarting(method);
@@ -130,10 +193,75 @@ export default function PaymentCheckout({ orderId }: { orderId: string }) {
   return (
     <div className="mt-10 border border-border bg-surface p-6 text-left">
       <p className="text-sm text-foreground/70">Valor a pagar</p>
-      <p className="font-serif-display text-4xl text-accent">{formatBRL(data.amountCents)}</p>
+      {data.couponCode ? (
+        <>
+          <p className="text-sm text-foreground/50 line-through">{formatBRL(data.subtotalCents)}</p>
+          <p className="font-serif-display text-4xl text-accent">{formatBRL(data.amountCents)}</p>
+          <p className="mt-1 text-xs text-accent">Desconto de {formatBRL(data.discountCents)}</p>
+        </>
+      ) : (
+        <p className="font-serif-display text-4xl text-accent">{formatBRL(data.amountCents)}</p>
+      )}
 
       {data.paymentAvailable ? (
         <>
+          <div className="mt-4 border border-border/70 bg-background/60 p-3">
+            {data.couponCode ? (
+              <div className="flex items-center justify-between gap-2 text-xs text-foreground/70">
+                <span>
+                  Cupom <strong className="text-foreground">{data.couponCode}</strong> aplicado
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  disabled={couponBusy}
+                  className="text-accent hover:underline disabled:opacity-60"
+                >
+                  Remover
+                </button>
+              </div>
+            ) : couponOpen ? (
+              <div>
+                <label htmlFor="coupon-code" className="flex items-center gap-1.5 text-xs text-foreground/70">
+                  <Tag size={12} /> Cupom de desconto
+                </label>
+                <div className="mt-1.5 flex gap-2">
+                  <input
+                    id="coupon-code"
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void handleApplyCoupon();
+                      }
+                    }}
+                    placeholder="Ex: CANTOECOR10"
+                    className="w-full min-w-0 border border-border bg-background px-2 py-1.5 text-sm uppercase text-foreground outline-none focus:border-accent"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={couponBusy || !couponInput.trim()}
+                    className="shrink-0 border border-accent bg-accent px-3 py-1.5 text-xs tracking-wide text-white uppercase transition-colors hover:bg-accent-dark disabled:opacity-60"
+                  >
+                    {couponBusy ? <Loader2 size={14} className="animate-spin" /> : "Aplicar"}
+                  </button>
+                </div>
+                {couponError && <p className="mt-1.5 text-xs text-accent">{couponError}</p>}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCouponOpen(true)}
+                className="flex items-center gap-1.5 text-xs text-accent hover:underline"
+              >
+                <Tag size={12} /> Tem um cupom de desconto?
+              </button>
+            )}
+          </div>
+
           <p className="mt-6 text-sm font-medium text-foreground">Como você quer pagar?</p>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-2">

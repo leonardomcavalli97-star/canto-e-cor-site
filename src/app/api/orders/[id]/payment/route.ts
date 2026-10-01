@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrder } from "@/lib/orders";
+import { getOrder, getPayableAmountCents } from "@/lib/orders";
 import { getInfinitePayHandle } from "@/lib/infinitepay";
 
 export async function GET(
@@ -14,7 +14,10 @@ export async function GET(
   }
 
   return NextResponse.json({
-    amountCents: order.totalPriceCents,
+    amountCents: getPayableAmountCents(order),
+    subtotalCents: order.totalPriceCents,
+    discountCents: order.discountCents ?? 0,
+    couponCode: order.couponCode ?? null,
     name: order.name,
     status: order.status,
     paymentAvailable: getInfinitePayHandle() !== null,

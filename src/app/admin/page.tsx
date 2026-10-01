@@ -57,6 +57,8 @@ type Order = {
   shippingAddress: ShippingAddress;
   shippingCents: number;
   totalPriceCents: number | null;
+  couponCode?: string;
+  discountCents?: number;
   status: string;
   createdAt: string;
   paymentReference?: string;
@@ -778,7 +780,23 @@ function OrderDetailPanel({
         <section className="mt-6">
           <h3 className="text-xs font-medium tracking-wide text-muted uppercase">Pagamento</h3>
           <div className="mt-2 space-y-1 text-sm text-foreground/80">
-            <p className="text-lg font-medium text-accent">{formatPrice(order.totalPriceCents)}</p>
+            {order.couponCode ? (
+              <>
+                <p className="text-foreground/50 line-through">{formatPrice(order.totalPriceCents)}</p>
+                <p className="text-lg font-medium text-accent">
+                  {formatPrice(
+                    order.totalPriceCents === null
+                      ? null
+                      : order.totalPriceCents - (order.discountCents ?? 0)
+                  )}
+                </p>
+                <p className="text-xs text-muted">
+                  Cupom {order.couponCode} · -{formatPrice(order.discountCents ?? 0)}
+                </p>
+              </>
+            ) : (
+              <p className="text-lg font-medium text-accent">{formatPrice(order.totalPriceCents)}</p>
+            )}
             <p>Método: {paymentMethodLabel(order)}</p>
             {order.paidAt && <p className="text-muted">Pago em {formatDate(order.paidAt)}</p>}
             {order.receiptUrl && (
@@ -1214,7 +1232,10 @@ function MonthlyReport({ orders }: { orders: Order[] }) {
     (o) => o.status === "pending_quote" || o.status === "pending_payment" || o.status === "pix_pending"
   );
 
-  const revenueCents = paidOrders.reduce((sum, o) => sum + (o.totalPriceCents ?? 0), 0);
+  const revenueCents = paidOrders.reduce(
+    (sum, o) => sum + (o.totalPriceCents ?? 0) - (o.discountCents ?? 0),
+    0
+  );
   const piecesSold = paidOrders.reduce(
     (sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0),
     0
