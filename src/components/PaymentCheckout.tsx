@@ -237,7 +237,7 @@ export default function PaymentCheckout({ orderId }: { orderId: string }) {
                         void handleApplyCoupon();
                       }
                     }}
-                    placeholder="ATELIE10"
+                    placeholder="Digite o código"
                     className="w-full min-w-0 border border-border bg-background px-2 py-1.5 text-sm uppercase text-foreground outline-none focus:border-accent"
                   />
                   <button
