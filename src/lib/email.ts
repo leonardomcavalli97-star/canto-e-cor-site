@@ -170,9 +170,38 @@ export async function sendAdminBackupEmail(to: string, csv: string, filename: st
   });
 }
 
-export async function sendOrderShippedEmail(to: string, name: string, trackingCode?: string) {
+// Pedidos de Campo Grande/MS têm frete grátis porque são entregues
+// pessoalmente — quando o pedido é "marcado como enviado" nesse caso, na
+// prática ele já foi entregue na hora, então não faz sentido falar em
+// rastreio/"a caminho". Fora de Campo Grande, vai mesmo pelos Correios e o
+// cliente precisa acompanhar até chegar.
+export async function sendOrderShippedEmail(
+  to: string,
+  name: string,
+  trackingCode?: string,
+  isLocalDelivery?: boolean
+) {
   const resend = getResend();
   if (!resend) return;
+
+  if (isLocalDelivery) {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: "Seu pedido foi entregue! · Canto e Cor",
+      html: `
+        <div style="font-family: Georgia, serif; color: #3a2a2a; max-width: 480px; margin: 0 auto;">
+          <p style="font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #a15c5c;">Canto e Cor</p>
+          <h1 style="font-size: 24px; margin: 8px 0 16px;">Sua aquarela foi entregue!</h1>
+          <p>Olá, ${escapeHtml(name)}!</p>
+          <p>Seu pedido acabou de ser entregue pessoalmente no endereço cadastrado em Campo Grande. Esperamos que você ame a sua aquarela!</p>
+          <p>Qualquer dúvida, é só responder este e-mail.</p>
+          <p style="margin-top: 24px;">Com carinho,<br />Canto e Cor</p>
+        </div>
+      `,
+    });
+    return;
+  }
 
   const trackingUrl = trackingCode
     ? `https://www.linkcorreios.com.br/?id=${encodeURIComponent(trackingCode)}`

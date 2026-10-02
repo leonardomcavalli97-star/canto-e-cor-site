@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { ADMIN_COOKIE_NAME, isValidSession } from "@/lib/adminAuth";
 import { updateOrderStatus, setOrderTracking } from "@/lib/orders";
 import { sendOrderShippedEmail } from "@/lib/email";
+import { isFreeShippingAddress } from "@/lib/pricing";
 
 export async function POST(
   req: NextRequest,
@@ -21,8 +22,9 @@ export async function POST(
 
   if (trackingCode) await setOrderTracking(id, trackingCode);
   const order = await updateOrderStatus(id, "shipped");
+  const isLocalDelivery = isFreeShippingAddress(order.shippingAddress.city, order.shippingAddress.state);
   try {
-    await sendOrderShippedEmail(order.email, order.name, order.trackingCode);
+    await sendOrderShippedEmail(order.email, order.name, order.trackingCode, isLocalDelivery);
   } catch (error) {
     console.error("Falha ao enviar e-mail de pedido enviado", id, error);
   }
