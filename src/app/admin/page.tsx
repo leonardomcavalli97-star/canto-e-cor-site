@@ -1685,7 +1685,6 @@ export default function AdminPage() {
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
   const [quickFilter, setQuickFilter] = useState("all");
-  const [showNewOrderNotice, setShowNewOrderNotice] = useState(false);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -1997,54 +1996,32 @@ export default function AdminPage() {
             Gerencie pedidos, pagamentos, produção e entregas.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex items-center gap-3 text-xs text-foreground/60">
           <button
             type="button"
-            onClick={() => setShowNewOrderNotice(true)}
-            className="flex items-center gap-1.5 bg-accent px-4 py-2 text-xs font-medium tracking-wide text-white uppercase hover:bg-accent-dark"
+            onClick={() => setView(view === "orders" ? "report" : "orders")}
+            className={`flex items-center gap-1 tracking-wide uppercase hover:text-accent ${
+              view === "report" ? "font-medium text-accent" : ""
+            }`}
           >
-            + Novo pedido
+            <BarChart3 size={13} /> {view === "orders" ? "Relatório mensal" : "Ver pedidos"}
           </button>
-          <div className="flex items-center gap-3 text-xs text-foreground/60">
-            <button
-              type="button"
-              onClick={() => setView(view === "orders" ? "report" : "orders")}
-              className={`flex items-center gap-1 tracking-wide uppercase hover:text-accent ${
-                view === "report" ? "font-medium text-accent" : ""
-              }`}
-            >
-              <BarChart3 size={13} /> {view === "orders" ? "Relatório mensal" : "Ver pedidos"}
-            </button>
-            <span className="text-border">·</span>
-            <button
-              type="button"
-              onClick={() => setView(view === "trash" ? "orders" : "trash")}
-              className={`flex items-center gap-1 tracking-wide uppercase hover:text-accent ${
-                view === "trash" ? "font-medium text-accent" : ""
-              }`}
-            >
-              <Archive size={13} /> {view === "trash" ? "Ver pedidos" : "Lixeira"}
-            </button>
-            <span className="text-border">·</span>
-            <button type="button" onClick={handleLogout} className="underline hover:text-accent">
-              Sair
-            </button>
-          </div>
+          <span className="text-border">·</span>
+          <button
+            type="button"
+            onClick={() => setView(view === "trash" ? "orders" : "trash")}
+            className={`flex items-center gap-1 tracking-wide uppercase hover:text-accent ${
+              view === "trash" ? "font-medium text-accent" : ""
+            }`}
+          >
+            <Archive size={13} /> {view === "trash" ? "Ver pedidos" : "Lixeira"}
+          </button>
+          <span className="text-border">·</span>
+          <button type="button" onClick={handleLogout} className="underline hover:text-accent">
+            Sair
+          </button>
         </div>
       </div>
-
-      {showNewOrderNotice && (
-        <div className="mt-6 flex items-center justify-between gap-3 border border-border bg-surface p-3 text-sm text-foreground/70">
-          <span>Criação manual de pedidos ainda não está disponível — em breve.</span>
-          <button
-            type="button"
-            onClick={() => setShowNewOrderNotice(false)}
-            className="text-xs text-muted underline"
-          >
-            Fechar
-          </button>
-        </div>
-      )}
 
       {urgentOrders.length > 0 && <AttentionPanel urgentOrders={urgentOrders} now={now} onOpenOrder={setSelectedId} />}
 
