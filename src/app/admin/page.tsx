@@ -1003,6 +1003,7 @@ type RowProps = {
   onDelete: (id: string) => void;
   selected: boolean;
   onToggleSelect: (id: string) => void;
+  selectionMode: boolean;
 };
 
 // Coluna "Prazo": o que ela mostra depende do que é conhecido com certeza —
@@ -1053,20 +1054,23 @@ function DesktopOrderRow({
   onDelete,
   selected,
   onToggleSelect,
+  selectionMode,
 }: RowProps) {
   return (
     <tr onClick={onOpenDetails} className="cursor-pointer border-b border-border last:border-b-0 hover:bg-surface/60">
-      <td className="px-3 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={() => onToggleSelect(order.id)}
-          aria-label={`Selecionar pedido de ${order.name}`}
-          className="h-4 w-4 accent-accent"
-        />
-      </td>
+      {selectionMode && (
+        <td className="px-3 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect(order.id)}
+            aria-label={`Selecionar pedido de ${order.name}`}
+            className="h-4 w-4 accent-accent"
+          />
+        </td>
+      )}
       <td className="min-w-0 px-4 py-3 align-middle">
-        <p className="truncate font-serif-display text-base text-foreground">{order.name}</p>
+        <p className="truncate text-sm font-medium text-foreground">{order.name}</p>
         <p className="truncate text-xs text-muted">{order.phone || order.email}</p>
       </td>
       <td className="min-w-0 px-4 py-3 align-middle">
@@ -1125,6 +1129,7 @@ function MobileOrderCard({
   onDelete,
   selected,
   onToggleSelect,
+  selectionMode,
 }: RowProps) {
   return (
     <li
@@ -1133,16 +1138,18 @@ function MobileOrderCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2">
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={() => onToggleSelect(order.id)}
-            onClick={(e) => e.stopPropagation()}
-            aria-label={`Selecionar pedido de ${order.name}`}
-            className="mt-1 h-4 w-4 shrink-0 accent-accent"
-          />
+          {selectionMode && (
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => onToggleSelect(order.id)}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Selecionar pedido de ${order.name}`}
+              className="mt-1 h-4 w-4 shrink-0 accent-accent"
+            />
+          )}
           <div className="min-w-0">
-            <p className="truncate font-serif-display text-base text-foreground">{order.name}</p>
+            <p className="truncate text-sm font-medium text-foreground">{order.name}</p>
             <p className="truncate text-xs text-muted">{order.phone || order.email}</p>
           </div>
         </div>
@@ -1329,7 +1336,7 @@ function TrashPanel({
                   className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 last:border-b-0"
                 >
                   <div className="min-w-0">
-                    <p className="truncate font-serif-display text-base text-foreground">{order.name}</p>
+                    <p className="truncate text-sm font-medium text-foreground">{order.name}</p>
                     <p className="truncate text-xs text-muted">
                       {orderSummary(order)} · {formatPrice(order.totalPriceCents)}
                     </p>
@@ -1629,6 +1636,7 @@ export default function AdminPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
   const [bulkWorking, setBulkWorking] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -2065,7 +2073,21 @@ export default function AdminPage() {
         ))}
       </div>
 
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            if (selectionMode) clearSelection();
+            setSelectionMode((v) => !v);
+          }}
+          className={`flex items-center gap-1.5 border px-3 py-1.5 text-xs tracking-wide uppercase ${
+            selectionMode
+              ? "border-accent bg-accent text-white"
+              : "border-border text-foreground/70 hover:border-accent hover:text-accent"
+          }`}
+        >
+          <Check size={14} /> {selectionMode ? "Cancelar seleção" : "Selecionar"}
+        </button>
         <button
           type="button"
           onClick={() => exportOrdersCsv(orders)}
@@ -2172,7 +2194,7 @@ export default function AdminPage() {
           <>
             <table className="hidden w-full table-fixed border-collapse lg:table">
               <colgroup>
-                <col className="w-[32px]" />
+                {selectionMode && <col className="w-[32px]" />}
                 <col className="w-[18%]" />
                 <col className="w-[19%]" />
                 <col className="w-[12%]" />
@@ -2183,21 +2205,23 @@ export default function AdminPage() {
               </colgroup>
               <thead>
                 <tr className="border-b border-border bg-background/60 text-[11px] font-medium tracking-wide text-muted uppercase">
-                  <th className="px-3 py-2.5">
-                    <input
-                      type="checkbox"
-                      checked={filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id))}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedIds(new Set(filtered.map((o) => o.id)));
-                        } else {
-                          clearSelection();
-                        }
-                      }}
-                      aria-label="Selecionar todos os pedidos visíveis"
-                      className="h-4 w-4 accent-accent"
-                    />
-                  </th>
+                  {selectionMode && (
+                    <th className="px-3 py-2.5">
+                      <input
+                        type="checkbox"
+                        checked={filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id))}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds(new Set(filtered.map((o) => o.id)));
+                          } else {
+                            clearSelection();
+                          }
+                        }}
+                        aria-label="Selecionar todos os pedidos visíveis"
+                        className="h-4 w-4 accent-accent"
+                      />
+                    </th>
+                  )}
                   <th className="px-4 py-2.5 text-left font-medium">Cliente</th>
                   <th className="px-4 py-2.5 text-left font-medium">Pedido</th>
                   <th className="px-4 py-2.5 text-left font-medium">Prazo</th>
@@ -2221,6 +2245,7 @@ export default function AdminPage() {
                     onDelete={handleDelete}
                     selected={selectedIds.has(order.id)}
                     onToggleSelect={toggleSelect}
+                    selectionMode={selectionMode}
                   />
                 ))}
               </tbody>
@@ -2240,6 +2265,7 @@ export default function AdminPage() {
                   onDelete={handleDelete}
                   selected={selectedIds.has(order.id)}
                   onToggleSelect={toggleSelect}
+                  selectionMode={selectionMode}
                 />
               ))}
             </ul>
