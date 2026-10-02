@@ -1668,12 +1668,6 @@ export default function AdminPage() {
     loadOrders();
   }
 
-  async function handleLogout() {
-    await fetch("/api/admin/login", { method: "DELETE" });
-    setAuthenticated(false);
-    setOrders([]);
-  }
-
   async function handleMarkPaid(id: string) {
     setActionError(null);
     const res = await fetch(`/api/admin/orders/${id}/mark-paid`, { method: "POST" });
@@ -1929,8 +1923,12 @@ export default function AdminPage() {
             <Archive size={13} /> {view === "trash" ? "Ver pedidos" : "Lixeira"}
           </button>
           <span className="text-border">·</span>
-          <button type="button" onClick={handleLogout} className="underline hover:text-accent">
-            Sair
+          <button
+            type="button"
+            onClick={() => setView("orders")}
+            className="flex items-center gap-1 tracking-wide uppercase hover:text-accent"
+          >
+            Voltar para tela inicial
           </button>
         </div>
       </div>
