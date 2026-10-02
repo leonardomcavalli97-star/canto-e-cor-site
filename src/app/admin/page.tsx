@@ -683,95 +683,6 @@ function PaidAtEditor({ orderId, paidAt }: { orderId: string; paidAt?: string })
   );
 }
 
-const PRODUCTION_STAGES = [
-  "Pedido recebido",
-  "Esboço",
-  "Aguardando aprovação",
-  "Pintura",
-  "Finalização",
-  "Embalagem",
-  "Enviado",
-];
-
-// Representação visual apenas — o banco hoje só distingue "recebido",
-// "pago/em produção" e "enviado". As 5 etapas do meio (esboço, aprovação,
-// pintura, finalização, embalagem) não têm um campo próprio ainda, então
-// aparecem como uma prévia (contorno tracejado), não como progresso real.
-type StageStyle = "done" | "current" | "preview" | "future";
-
-function stageStyle(order: Order, i: number): StageStyle {
-  if (order.status === "shipped") return i < 6 ? "done" : "current";
-  if (order.status === "paid") {
-    if (i === 0) return "done";
-    if (i >= 1 && i <= 5) return "preview";
-    return "future";
-  }
-  return i === 0 ? "current" : "future";
-}
-
-function ProductionStepper({ order }: { order: Order }) {
-  if (order.status === "cancelled") {
-    return (
-      <div className="border border-border bg-surface p-4">
-        <p className="text-sm font-medium text-muted line-through decoration-muted/50">
-          Pedido cancelado
-        </p>
-      </div>
-    );
-  }
-
-  const hasPreview = order.status === "paid";
-
-  return (
-    <div className="border border-border bg-surface p-4">
-      <div className="overflow-x-auto">
-        <div className="flex min-w-max justify-between gap-4 sm:gap-1">
-        {PRODUCTION_STAGES.map((stage, i) => {
-          const style = stageStyle(order, i);
-          return (
-            <div key={stage} className="flex w-16 shrink-0 flex-col items-center gap-1.5 text-center sm:flex-1">
-              <span
-                title={
-                  style === "preview"
-                    ? `${stage}: sub-etapa de "Em produção" ainda não registrada no sistema`
-                    : stage
-                }
-                className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                  style === "preview"
-                    ? "border border-dashed border-muted/50 bg-transparent"
-                    : style === "done"
-                      ? "bg-accent-navy"
-                      : style === "current"
-                        ? "bg-accent"
-                        : "bg-border"
-                }`}
-              />
-              <span
-                className={`text-[10px] leading-tight ${
-                  style === "preview"
-                    ? "text-muted/50"
-                    : style === "current"
-                      ? "font-medium text-foreground"
-                      : "text-muted"
-                }`}
-              >
-                {stage}
-              </span>
-            </div>
-          );
-        })}
-        </div>
-      </div>
-      {hasPreview && (
-        <p className="mt-3 text-center text-xs text-muted">
-          Etapas tracejadas são uma prévia visual — o sistema ainda não registra em qual sub-etapa da
-          produção o pedido está.
-        </p>
-      )}
-    </div>
-  );
-}
-
 function OrderDetailPanel({
   order,
   now,
@@ -835,10 +746,6 @@ function OrderDetailPanel({
               <PaymentIndicator order={order} />
             </div>
           </div>
-        </div>
-
-        <div className="mt-4">
-          <ProductionStepper order={order} />
         </div>
 
         {order.rushDays !== null && order.status !== "shipped" && order.status !== "cancelled" && (
@@ -1086,7 +993,12 @@ function PrazoCell({ order, now }: { order: Order; now: number }) {
     );
   }
   if (order.rushDays === null) {
-    return <p className="text-xs whitespace-nowrap text-muted">{formatDateShort(order.createdAt)}</p>;
+    return (
+      <div className="text-xs leading-snug">
+        <p className="text-muted">Sem prazo de entrega</p>
+        <p className="text-muted/70">{formatDateShort(order.createdAt)}</p>
+      </div>
+    );
   }
   const deadline = getRushDeadline(order);
   if (!deadline) return null;
