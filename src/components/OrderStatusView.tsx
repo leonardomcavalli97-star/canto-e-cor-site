@@ -12,6 +12,7 @@ type StatusData = {
   totalPriceLabel: string;
   paidAt: string | null;
   rushDays: number | null;
+  trackingCode: string | null;
 };
 
 function formatDate(iso: string) {
@@ -59,6 +60,22 @@ export default function OrderStatusView({ orderId }: { orderId: string }) {
     <div className="mt-10 border border-border bg-surface p-6 text-left">
       <p className="text-xs font-medium tracking-wide text-muted uppercase">Status</p>
       <p className="mt-1 font-serif-display text-2xl text-accent">{data.statusLabel}</p>
+
+      {data.trackingCode && (
+        <div className="mt-4 border border-border bg-background p-3 text-sm">
+          <p className="text-foreground/80">
+            Código de rastreio: <strong>{data.trackingCode}</strong>
+          </p>
+          <a
+            href={`https://www.linkcorreios.com.br/?id=${encodeURIComponent(data.trackingCode)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent hover:text-accent-dark"
+          >
+            Acompanhar entrega
+          </a>
+        </div>
+      )}
 
       <div className="mt-5 space-y-1 border-t border-border pt-4 text-sm text-foreground/80">
         <p>Pedido feito em {formatDate(data.createdAt)}</p>

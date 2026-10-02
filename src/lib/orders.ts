@@ -57,6 +57,7 @@ export interface OrderRecord {
   notes?: string;
   reminderSentAt?: string;
   deletedAt?: string;
+  trackingCode?: string;
 }
 
 // Pedidos criados antes da mudança para múltiplos desenhos guardavam os
@@ -230,6 +231,16 @@ export async function setOrderNotes(id: string, notes: string) {
   if (!raw) throw new Error("Pedido não encontrado.");
   const record = normalizeOrder(raw);
   record.notes = notes.slice(0, 4000);
+  return writeOrder(record);
+}
+
+export async function setOrderTracking(id: string, trackingCode: string) {
+  const raw = await readOrderJson(orderPathname(id));
+  if (!raw) throw new Error("Pedido não encontrado.");
+  const record = normalizeOrder(raw);
+  const trimmed = trackingCode.trim().slice(0, 100);
+  if (trimmed) record.trackingCode = trimmed;
+  else delete record.trackingCode;
   return writeOrder(record);
 }
 

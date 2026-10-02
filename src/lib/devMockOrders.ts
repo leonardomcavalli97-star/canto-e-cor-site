@@ -70,6 +70,7 @@ export const DEV_FALLBACK_ORDERS: OrderRecord[] = [
     paidAt: daysAgo(18),
     rushDays: 10,
     rushCents: 3000,
+    trackingCode: "OJ123456789BR",
   },
   {
     id: "dev-3",

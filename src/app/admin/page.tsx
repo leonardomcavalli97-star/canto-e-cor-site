@@ -70,6 +70,7 @@ type Order = {
   rushCents: number;
   notes?: string;
   deletedAt?: string;
+  trackingCode?: string;
 };
 
 type Tone = "waiting" | "attention" | "progress" | "done" | "cancelled";
@@ -399,7 +400,7 @@ function ActionsMenu({
 }: {
   order: Order;
   onMarkPaid: (id: string) => void;
-  onMarkShipped: (id: string) => void;
+  onMarkShipped: (id: string, trackingCode?: string) => void;
   onCancel: (id: string) => void;
   onDelete: (id: string) => void;
   onOpenDetails: () => void;
@@ -683,6 +684,39 @@ function PaidAtEditor({ orderId, paidAt }: { orderId: string; paidAt?: string })
   );
 }
 
+function TrackingCodeEditor({
+  order,
+  onMarkShipped,
+}: {
+  order: Order;
+  onMarkShipped: (id: string, trackingCode?: string) => void;
+}) {
+  const [value, setValue] = useState(order.trackingCode ?? "");
+
+  return (
+    <section className="mt-6">
+      <h3 className="text-xs font-medium tracking-wide text-muted uppercase">Rastreio</h3>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Código de rastreio (opcional)"
+          className="min-w-0 flex-1 border border-border bg-surface p-2.5 text-sm outline-none focus:border-accent"
+        />
+        <button
+          type="button"
+          onClick={() => onMarkShipped(order.id, value)}
+          className="flex items-center gap-2 bg-accent px-4 py-2.5 text-xs tracking-wide text-white uppercase hover:bg-accent-dark"
+        >
+          <Truck size={14} />
+          {order.status === "shipped" ? "Atualizar e reenviar e-mail" : "Marcar como enviado"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function OrderDetailPanel({
   order,
   now,
@@ -698,7 +732,7 @@ function OrderDetailPanel({
   onClose: () => void;
   onOpenImage: (src: string) => void;
   onMarkPaid: (id: string) => void;
-  onMarkShipped: (id: string) => void;
+  onMarkShipped: (id: string, trackingCode?: string) => void;
   onCancel: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
@@ -910,6 +944,10 @@ function OrderDetailPanel({
           </div>
         </section>
 
+        {(order.status === "paid" || order.status === "shipped") && (
+          <TrackingCodeEditor order={order} onMarkShipped={onMarkShipped} />
+        )}
+
         <NotesEditor orderId={order.id} initialNotes={order.notes ?? ""} />
 
         <div className="mt-8 flex flex-wrap gap-2 border-t border-border pt-6">
@@ -929,15 +967,6 @@ function OrderDetailPanel({
               className="flex items-center gap-2 bg-accent px-4 py-2 text-xs tracking-wide text-white uppercase hover:bg-accent-dark"
             >
               <Check size={14} /> Marcar como pago
-            </button>
-          )}
-          {order.status === "paid" && (
-            <button
-              type="button"
-              onClick={() => onMarkShipped(order.id)}
-              className="flex items-center gap-2 bg-accent px-4 py-2 text-xs tracking-wide text-white uppercase hover:bg-accent-dark"
-            >
-              <Truck size={14} /> Marcar como enviado
             </button>
           )}
           {order.status !== "cancelled" && order.status !== "shipped" && (
@@ -969,7 +998,7 @@ type RowProps = {
   onOpenDetails: () => void;
   onOpenImage: (src: string) => void;
   onMarkPaid: (id: string) => void;
-  onMarkShipped: (id: string) => void;
+  onMarkShipped: (id: string, trackingCode?: string) => void;
   onCancel: (id: string) => void;
   onDelete: (id: string) => void;
   selected: boolean;
@@ -1678,9 +1707,13 @@ export default function AdminPage() {
     loadOrders();
   }
 
-  async function handleMarkShipped(id: string) {
+  async function handleMarkShipped(id: string, trackingCode?: string) {
     setActionError(null);
-    const res = await fetch(`/api/admin/orders/${id}/mark-shipped`, { method: "POST" });
+    const res = await fetch(`/api/admin/orders/${id}/mark-shipped`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trackingCode }),
+    });
     if (!res.ok) {
       setActionError("Não foi possível marcar como enviado. Tente novamente.");
       return;

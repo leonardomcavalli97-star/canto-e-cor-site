@@ -35,5 +35,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext<"/api/orders/[id]
     totalPriceLabel: formatPrice(order.totalPriceCents),
     paidAt: order.paidAt ?? null,
     rushDays: order.rushDays,
+    trackingCode: order.trackingCode ?? null,
   });
 }

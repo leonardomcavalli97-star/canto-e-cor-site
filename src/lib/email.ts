@@ -170,9 +170,13 @@ export async function sendAdminBackupEmail(to: string, csv: string, filename: st
   });
 }
 
-export async function sendOrderShippedEmail(to: string, name: string) {
+export async function sendOrderShippedEmail(to: string, name: string, trackingCode?: string) {
   const resend = getResend();
   if (!resend) return;
+
+  const trackingUrl = trackingCode
+    ? `https://www.linkcorreios.com.br/?id=${encodeURIComponent(trackingCode)}`
+    : null;
 
   await resend.emails.send({
     from: FROM_EMAIL,
@@ -184,6 +188,14 @@ export async function sendOrderShippedEmail(to: string, name: string) {
         <h1 style="font-size: 24px; margin: 8px 0 16px;">Sua aquarela está a caminho!</h1>
         <p>Olá, ${escapeHtml(name)}!</p>
         <p>Seu pedido acabou de ser enviado e já está a caminho do endereço que você cadastrou.</p>
+        ${
+          trackingUrl
+            ? `<p style="margin-top: 16px; padding: 12px 16px; background: #f4efe4; border-radius: 4px;">
+                 Código de rastreio: <strong>${escapeHtml(trackingCode!)}</strong><br />
+                 <a href="${trackingUrl}" style="color: #a15c5c;">Acompanhar entrega</a>
+               </p>`
+            : ""
+        }
         <p>Qualquer dúvida, é só responder este e-mail.</p>
         <p style="margin-top: 24px;">Com carinho,<br />Canto e Cor</p>
       </div>

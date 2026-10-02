@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE_NAME, isValidSession } from "@/lib/adminAuth";
-import { updateOrderStatus } from "@/lib/orders";
+import { updateOrderStatus, setOrderTracking } from "@/lib/orders";
 import { sendOrderShippedEmail } from "@/lib/email";
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: RouteContext<"/api/admin/orders/[id]/mark-shipped">
 ) {
   const cookieStore = await cookies();
@@ -16,9 +16,13 @@ export async function POST(
   }
 
   const { id } = await ctx.params;
+  const body = await req.json().catch(() => ({}));
+  const trackingCode = typeof body.trackingCode === "string" ? body.trackingCode.trim() : "";
+
+  if (trackingCode) await setOrderTracking(id, trackingCode);
   const order = await updateOrderStatus(id, "shipped");
   try {
-    await sendOrderShippedEmail(order.email, order.name);
+    await sendOrderShippedEmail(order.email, order.name, order.trackingCode);
   } catch (error) {
     console.error("Falha ao enviar e-mail de pedido enviado", id, error);
   }
