@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ButtonHTMLAttributes } from "react";
 
 const base =
-  "inline-flex items-center justify-center gap-2 px-7 py-3 text-sm tracking-wide uppercase transition-colors";
+  "inline-flex items-center justify-center gap-2 rounded-button px-7 py-3 text-sm tracking-wide uppercase transition-colors";
 
 const variants = {
   solid: "bg-accent text-white hover:bg-accent-dark",

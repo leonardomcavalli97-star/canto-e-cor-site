@@ -43,7 +43,7 @@ export default function Header() {
 
           <Link
             href="/pedido"
-            className="inline-flex shrink-0 items-center gap-2 self-start border border-accent px-5 py-2 text-sm tracking-wide text-accent transition-colors hover:bg-accent hover:text-white md:self-auto"
+            className="inline-flex shrink-0 items-center gap-2 self-start rounded-button border border-accent px-5 py-2 text-sm tracking-wide text-accent transition-colors hover:bg-accent hover:text-white md:self-auto"
           >
             <Palette className="h-4 w-4" />
             Encomendar

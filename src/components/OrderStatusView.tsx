@@ -57,12 +57,12 @@ export default function OrderStatusView({ orderId }: { orderId: string }) {
   }
 
   return (
-    <div className="mt-10 border border-border bg-surface p-6 text-left">
+    <div className="mt-10 rounded-summary border border-border bg-surface p-6 text-left shadow-sm">
       <p className="text-xs font-medium tracking-wide text-muted uppercase">Status</p>
       <p className="mt-1 font-serif-display text-2xl text-accent">{data.statusLabel}</p>
 
       {data.trackingCode && (
-        <div className="mt-4 border border-border bg-background p-3 text-sm">
+        <div className="mt-4 rounded-notice border border-border bg-background p-3 text-sm">
           <p className="text-foreground/80">
             Código de rastreio: <strong>{data.trackingCode}</strong>
           </p>

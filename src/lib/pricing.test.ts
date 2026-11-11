@@ -7,6 +7,7 @@ import {
   isFreeShippingAddress,
   formatBRL,
   formatPrice,
+  formatPriceOrQuote,
   SHIPPING_FLAT_CENTS,
 } from "./pricing";
 
@@ -17,6 +18,26 @@ describe("PAPER_SIZES", () => {
 
   it("personalizado has no fixed price (quote needed)", () => {
     expect(PAPER_SIZES.personalizado.priceCents).toBeNull();
+  });
+
+  it("flashcards is the cheapest fixed-price option at R$ 35,00", () => {
+    expect(PAPER_SIZES.flashcard.priceCents).toBe(3500);
+    expect(PAPER_SIZES.flashcard.priceCents!).toBeLessThan(PAPER_SIZES.A5.priceCents!);
+  });
+
+  it("every size has a short description for its checkout card", () => {
+    for (const size of Object.values(PAPER_SIZES)) {
+      expect(size.description.length).toBeGreaterThan(0);
+      expect(size.description.length).toBeLessThanOrEqual(80);
+    }
+  });
+
+  it("flashcards description keeps the 'few details' restriction", () => {
+    expect(PAPER_SIZES.flashcard.description).toContain("poucos detalhes");
+  });
+
+  it("lists A5, A4, flashcards and personalizado in that display order", () => {
+    expect(Object.keys(PAPER_SIZES)).toEqual(["A5", "A4", "flashcard", "personalizado"]);
   });
 });
 
@@ -90,5 +111,10 @@ describe("formatBRL / formatPrice", () => {
 
   it("formats a real price normally", () => {
     expect(formatPrice(SHIPPING_FLAT_CENTS)).toContain("25,00");
+  });
+
+  it("checkout label says 'Sob orçamento' for items without a fixed price", () => {
+    expect(formatPriceOrQuote(null)).toBe("Sob orçamento");
+    expect(formatPriceOrQuote(3500)).toContain("35,00");
   });
 });

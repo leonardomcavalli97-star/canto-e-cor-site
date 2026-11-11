@@ -13,9 +13,8 @@ export default function PedidoRecebidoPage() {
         Recebemos o seu pedido personalizado!
       </h1>
       <p className="mt-6 text-foreground/80">
-        Como o tamanho é personalizado, ainda não cobramos nada. Vamos analisar os
-        detalhes e enviar um orçamento pelo e-mail ou WhatsApp informado — o pagamento
-        só acontece depois que você aprovar o valor.
+        Ainda não cobramos nada. Enviaremos um orçamento por e-mail ou WhatsApp, e o
+        pagamento só acontece depois que você aprovar o valor.
       </p>
       <div className="mt-10">
         <LinkButton href="/">Voltar para o início</LinkButton>

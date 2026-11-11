@@ -12,6 +12,7 @@ import {
   getRushOption,
   multiplyRushCents,
   formatPrice,
+  formatPriceOrQuote,
   type PaperSize,
 } from "@/lib/pricing";
 import { formatCpf, isValidCpf } from "@/lib/cpf";
@@ -19,10 +20,7 @@ import { Button } from "@/components/Button";
 import {
   ArrowRight,
   Image as ImageIcon,
-  Lock,
-  Mail,
   Minus,
-  Paintbrush,
   Plus,
   CreditCard,
   X,
@@ -545,15 +543,14 @@ export default function OrderForm() {
   return (
     <form ref={formRef} onSubmit={handleFormSubmit} noValidate className="mt-10">
       {draftRestored && (
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-accent/30 bg-accent/5 p-4 text-sm">
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-notice border border-accent/30 bg-accent/5 px-4 py-2.5 text-xs">
           <p className="text-foreground/80">
-            Recuperamos o que você tinha preenchido antes. Só as fotos precisam ser adicionadas de novo —
-            isso o navegador não deixa recuperar sozinho.
+            Seu preenchimento anterior foi recuperado. Adicione as fotos novamente.
           </p>
           <button
             type="button"
             onClick={discardDraft}
-            className="shrink-0 text-xs text-muted underline hover:text-accent"
+            className="shrink-0 text-muted underline hover:text-accent"
           >
             Começar do zero
           </button>
@@ -587,22 +584,25 @@ export default function OrderForm() {
                     key={size}
                     onClick={() => setPaperSize(size)}
                     aria-pressed={selected}
-                    className={`border p-5 text-left transition-colors ${isCustom ? "sm:col-span-2 border-dashed" : ""} ${
-                      selected ? "border-accent bg-accent/5" : "border-border hover:border-accent/50"
+                    className={`rounded-card border p-4 text-left transition ${isCustom ? "border-dashed" : ""} ${
+                      selected ? "border-accent bg-accent/5 shadow-sm" : "border-border hover:border-accent/50"
                     }`}
                   >
-                    <div className="flex items-baseline justify-between gap-3">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                       <span className="font-serif-display text-2xl text-foreground">{opt.label}</span>
-                      <span className={isCustom ? "text-sm font-medium text-accent" : "text-accent"}>
-                        {formatPrice(opt.priceCents)}
+                      <span
+                        className={`whitespace-nowrap rounded-pill bg-accent/10 py-0.5 text-accent ${isCustom ? "px-3 text-xs font-medium" : "px-3"}`}
+                      >
+                        {formatPriceOrQuote(opt.priceCents)}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted">{opt.dimensions}</p>
-                    <p className="mt-2 text-sm text-foreground/70">{opt.description}</p>
                   </button>
                 );
               })}
             </div>
+
+            <p className="mt-3 text-sm text-foreground/80">{PAPER_SIZES[paperSize].description}</p>
 
             {paperSize === "personalizado" && (
               <div className="mt-4">
@@ -614,23 +614,20 @@ export default function OrderForm() {
                   value={customSize}
                   onChange={(e) => setCustomSize(e.target.value)}
                   type="text"
-                  placeholder="Ex: 30x40 cm, ou 'um quadro grande pra sala'"
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  placeholder="Ex: 30 × 40 cm ou um quadro grande"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
             )}
 
-            <div className="mt-4 flex items-center justify-between border border-border bg-surface p-4">
-              <div>
-                <p className="text-sm text-foreground">Quantas cópias desse desenho?</p>
-                <p className="text-xs text-muted">Pinturas idênticas, feitas à mão uma a uma.</p>
-              </div>
+            <div className="mt-4 flex items-center justify-between rounded-notice border border-border bg-surface p-4">
+              <p className="text-sm text-foreground">Quantidade</p>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   aria-label="Diminuir quantidade"
-                  className="flex h-11 w-11 items-center justify-center border border-border bg-background hover:border-accent"
+                  className="flex h-11 w-11 items-center justify-center rounded-control border border-border bg-background hover:border-accent"
                 >
                   <Minus size={14} />
                 </button>
@@ -641,17 +638,12 @@ export default function OrderForm() {
                   type="button"
                   onClick={() => setQuantity((q) => Math.min(MAX_QUANTITY, q + 1))}
                   aria-label="Aumentar quantidade"
-                  className="flex h-11 w-11 items-center justify-center border border-border bg-background hover:border-accent"
+                  className="flex h-11 w-11 items-center justify-center rounded-control border border-border bg-background hover:border-accent"
                 >
                   <Plus size={14} />
                 </button>
               </div>
             </div>
-
-            <p className="mt-3 text-xs text-muted">
-              * Tamanhos de folha diferentes ou desenhos muito detalhados podem alterar o
-              valor final — combinamos com você antes de confirmar, se for o caso.
-            </p>
           </fieldset>
 
           <fieldset>
@@ -666,7 +658,7 @@ export default function OrderForm() {
                   key={t.value}
                   onClick={() => setTheme(t.value)}
                   aria-pressed={theme === t.value}
-                  className={`border px-5 py-2 text-sm transition-colors ${
+                  className={`rounded-control border px-5 py-2 text-sm transition-colors ${
                     theme === t.value
                       ? "border-accent bg-accent text-white"
                       : "border-border text-foreground/80 hover:border-accent/50"
@@ -688,7 +680,7 @@ export default function OrderForm() {
                   onChange={(e) => setThemeOther(e.target.value)}
                   type="text"
                   placeholder="Ex: paisagem, símbolo, cena específica..."
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
             )}
@@ -700,12 +692,11 @@ export default function OrderForm() {
               <span className="font-serif-display text-xl text-foreground">Foto(s) de referência</span>
             </legend>
             <p className="mt-2 text-sm text-foreground/70">
-              Envie a foto que vai inspirar a pintura. Prefira fotos nítidas, bem
-              iluminadas e de frente. Até {MAX_FILES} fotos, 10MB cada.
+              Prefira fotos nítidas e bem iluminadas. Até {MAX_FILES} fotos, 10MB cada.
             </p>
 
             <div
-              className={`mt-4 cursor-pointer border border-dashed p-8 text-center transition-colors ${
+              className={`mt-4 cursor-pointer rounded-upload border border-dashed p-8 text-center transition-colors ${
                 isDragging ? "border-accent bg-accent/10" : "border-border hover:border-accent/60"
               }`}
               onClick={() => fileInputRef.current?.click()}
@@ -739,7 +730,7 @@ export default function OrderForm() {
             {files.length > 0 && (
               <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {files.map((file, i) => (
-                  <li key={i} className="relative aspect-square overflow-hidden border border-border">
+                  <li key={i} className="relative aspect-square overflow-hidden rounded-field border border-border">
                     {previews[i] && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -773,21 +764,20 @@ export default function OrderForm() {
               </span>
             </legend>
             <p className="mt-2 text-sm text-foreground/70">
-              Conte detalhes que não aparecem na foto: cores que você gosta, se quer
-              incluir fundo ou deixar neutro, algo especial que a peça deve representar.
+              Cores, fundo, detalhes especiais: o que a foto não mostra.
             </p>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
               maxLength={2000}
-              placeholder="Ex: quero o casal da foto, com fundo neutro em tons pastel, focando do peito para cima..."
-              className="mt-4 w-full border border-border bg-surface p-4 text-sm outline-none focus:border-accent"
+              placeholder="Ex: fundo neutro em tons pastel, do peito para cima"
+              className="mt-4 w-full rounded-field border border-border bg-surface p-4 text-sm outline-none focus:border-accent"
             />
           </fieldset>
 
           {cartItems.length > 0 && (
-            <div className="border border-border bg-surface p-4">
+            <div className="rounded-notice border border-border bg-surface p-4">
               <p className="font-serif-display text-lg text-foreground">Desenhos já adicionados</p>
               <ul className="mt-3 space-y-2">
                 {cartItems.map((item, i) => (
@@ -796,7 +786,7 @@ export default function OrderForm() {
                     className="flex items-center justify-between gap-3 border-b border-border pb-2 text-sm last:border-0 last:pb-0"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden border border-border bg-background">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-field border border-border bg-background">
                         {cartPreviews[i] ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={cartPreviews[i]!} alt="" className="h-full w-full object-cover" />
@@ -812,7 +802,7 @@ export default function OrderForm() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-accent">
-                        {formatPrice(
+                        {formatPriceOrQuote(
                           itemUnitPrice(item) === null ? null : itemUnitPrice(item)! * item.quantity
                         )}
                       </span>
@@ -835,7 +825,7 @@ export default function OrderForm() {
             type="button"
             onClick={handleAddAnother}
             disabled={cartItems.length >= MAX_ITEMS}
-            className="flex items-center gap-2 border border-dashed border-accent px-5 py-3 text-sm text-accent transition-colors hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            className="flex items-center gap-2 rounded-button border border-dashed border-accent px-5 py-3 text-sm text-accent transition-colors hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
             <Plus size={16} /> Adicionar outro desenho
           </button>
@@ -863,7 +853,7 @@ export default function OrderForm() {
                   type="text"
                   required
                   maxLength={200}
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
               <div>
@@ -874,7 +864,7 @@ export default function OrderForm() {
                   type="email"
                   required
                   maxLength={254}
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
               <div>
@@ -886,7 +876,7 @@ export default function OrderForm() {
                   required
                   maxLength={30}
                   placeholder="(11) 91234-5678"
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
               <div>
@@ -901,7 +891,7 @@ export default function OrderForm() {
                   placeholder="000.000.000-00"
                   value={cpf}
                   onChange={(e) => handleCpfChange(e.target.value)}
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
             </div>
@@ -924,7 +914,7 @@ export default function OrderForm() {
                   inputMode="numeric"
                   placeholder="00000-000"
                   autoComplete="postal-code"
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
                 {cepLoading && <p className="mt-1 text-xs text-muted">Buscando endereço...</p>}
               </div>
@@ -937,7 +927,7 @@ export default function OrderForm() {
                   type="text"
                   maxLength={200}
                   autoComplete="address-line1"
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
               <div>
@@ -948,7 +938,7 @@ export default function OrderForm() {
                   onChange={(e) => setNumber(e.target.value)}
                   type="text"
                   maxLength={20}
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
               <div className="sm:col-span-3">
@@ -961,7 +951,7 @@ export default function OrderForm() {
                   maxLength={200}
                   placeholder="Apto, bloco, ponto de referência..."
                   autoComplete="address-line2"
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -972,7 +962,7 @@ export default function OrderForm() {
                   onChange={(e) => setNeighborhood(e.target.value)}
                   type="text"
                   maxLength={200}
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
               <div>
@@ -984,7 +974,7 @@ export default function OrderForm() {
                   type="text"
                   maxLength={200}
                   autoComplete="address-level2"
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
               <div>
@@ -996,7 +986,7 @@ export default function OrderForm() {
                   type="text"
                   maxLength={2}
                   autoComplete="address-level1"
-                  className="mt-1 w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+                  className="mt-1 w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
                 />
               </div>
             </div>
@@ -1011,13 +1001,10 @@ export default function OrderForm() {
               <span className="font-serif-display text-xl text-foreground">Prazo de entrega</span>
             </legend>
             <p className="mt-2 text-sm text-foreground/70">
-              O prazo padrão é de até 1 mês, podendo variar conforme a demanda. Se
-              quiser priorizar sua encomenda, escolha um prazo mais curto abaixo.
+              Prazo padrão: até 1 mês, podendo variar conforme a demanda.
             </p>
-            <p className="mt-2 text-xs text-muted">
-              Esse prazo é para a pintura ficar pronta e ser postada — não inclui o
-              tempo de transporte dos Correios até você, que é à parte e pode ser maior
-              se você estiver em uma cidade mais distante.
+            <p className="mt-1 text-xs text-muted">
+              Vale para pintar e postar; o transporte dos Correios é à parte.
             </p>
             <div className="mt-4 space-y-2">
               {RUSH_OPTIONS.map((opt) => {
@@ -1029,12 +1016,16 @@ export default function OrderForm() {
                     key={opt.value}
                     onClick={() => setRushOptionValue(opt.value)}
                     aria-pressed={selected}
-                    className={`flex w-full items-center justify-between border p-4 text-left transition-colors ${
-                      selected ? "border-accent bg-accent/5" : "border-border hover:border-accent/50"
+                    className={`flex w-full items-center justify-between rounded-card border p-4 text-left transition ${
+                      selected ? "border-accent bg-accent/5 shadow-sm" : "border-border hover:border-accent/50"
                     }`}
                   >
                     <span className="text-sm text-foreground">{opt.label}</span>
-                    <span className={totalForOption > 0 ? "text-accent" : "text-muted"}>
+                    <span
+                      className={`rounded-pill px-3 py-0.5 ${
+                        totalForOption > 0 ? "bg-accent/10 text-accent" : "bg-border/40 text-muted"
+                      }`}
+                    >
                       {totalForOption > 0 ? `+ ${formatPrice(totalForOption)}` : "Grátis"}
                     </span>
                   </button>
@@ -1043,15 +1034,7 @@ export default function OrderForm() {
             </div>
             {totalPieceCount > 1 && (
               <p className="mt-2 text-xs text-muted">
-                Pedido com {totalPieceCount} peças — a taxa de prazo é cobrada por peça
-                {rushCentsPerPiece > 0 && (
-                  <>
-                    {" "}
-                    ({formatPrice(rushCentsPerPiece)} × {totalPieceCount} ={" "}
-                    {formatPrice(rushCentsPerPiece * totalPieceCount)})
-                  </>
-                )}
-                .
+                Taxa de prazo cobrada por peça (× {totalPieceCount}).
               </p>
             )}
           </fieldset>
@@ -1061,7 +1044,7 @@ export default function OrderForm() {
               <span className="font-serif-display text-3xl text-accent/40">08</span>
               <span className="font-serif-display text-xl text-foreground">Revise seu pedido</span>
             </legend>
-            <div className="mt-4 space-y-4 border border-border bg-surface p-5 text-sm">
+            <div className="mt-4 space-y-4 rounded-summary border border-border bg-surface p-5 text-sm">
               <div>
                 <p className="text-xs font-medium tracking-wide text-muted uppercase">
                   {distinctDesignCount > 1 ? "Desenhos" : "Desenho"}
@@ -1075,7 +1058,7 @@ export default function OrderForm() {
                         {item.quantity}
                       </span>
                       <span className="shrink-0 text-accent">
-                        {formatPrice(
+                        {formatPriceOrQuote(
                           itemUnitPrice(item) === null ? null : itemUnitPrice(item)! * item.quantity
                         )}
                       </span>
@@ -1088,7 +1071,7 @@ export default function OrderForm() {
                         {quantity}
                       </span>
                       <span className="shrink-0 text-accent">
-                        {formatPrice(currentUnitPrice === null ? null : currentUnitPrice * quantity)}
+                        {formatPriceOrQuote(currentUnitPrice === null ? null : currentUnitPrice * quantity)}
                       </span>
                     </li>
                   )}
@@ -1107,7 +1090,7 @@ export default function OrderForm() {
                     {cep ? ` · CEP ${cep}` : ""}
                   </p>
                 ) : (
-                  <p className="mt-1 text-muted">Preencha o endereço acima para conferir aqui.</p>
+                  <p className="mt-1 text-muted">Preencha o endereço acima.</p>
                 )}
               </div>
 
@@ -1119,15 +1102,13 @@ export default function OrderForm() {
               <div className="border-t border-border pt-3 text-xs text-foreground/70">
                 {overallHasCustom ? (
                   <p>
-                    <strong className="text-accent">Como funciona:</strong> como esse pedido tem um item sob
-                    medida, você não paga agora — enviamos um orçamento por e-mail antes de qualquer
-                    cobrança.
+                    <strong className="text-accent">Orçamento:</strong> você não paga agora. Enviamos o valor
+                    por e-mail antes de qualquer cobrança.
                   </p>
                 ) : (
                   <p>
-                    <strong className="text-accent">Como funciona o pagamento:</strong> ao confirmar, você
-                    paga no cartão (em até 3x) ou com Pix pelo ambiente seguro da InfinitePay. A
-                    confirmação é automática e você recebe um e-mail assim que o pagamento for aprovado.
+                    <strong className="text-accent">Pagamento:</strong> cartão em até 3x ou Pix, em ambiente
+                    seguro da InfinitePay. Você recebe um e-mail quando for aprovado.
                   </p>
                 )}
               </div>
@@ -1138,10 +1119,10 @@ export default function OrderForm() {
         </div>
 
         <aside className="hidden lg:block lg:sticky lg:top-28">
-          <div className="border border-border bg-surface p-6">
+          <div className="rounded-summary border border-border bg-surface p-6 shadow-sm">
             {distinctDesignCount === 1 ? (
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden border border-border bg-background">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-field border border-border bg-background">
                   {previews[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={previews[0]} alt="" className="h-full w-full object-cover" />
@@ -1171,7 +1152,7 @@ export default function OrderForm() {
                   {cartItems.map((item, i) => (
                     <div
                       key={i}
-                      className="relative h-14 w-14 shrink-0 overflow-hidden border border-border bg-background"
+                      className="relative h-14 w-14 shrink-0 overflow-hidden rounded-field border border-border bg-background"
                     >
                       {cartPreviews[i] ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -1187,7 +1168,7 @@ export default function OrderForm() {
                     </div>
                   ))}
                   {willIncludeCurrent && (
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden border border-dashed border-accent bg-background">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-field border border-dashed border-accent bg-background">
                       {previews[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={previews[0]} alt="" className="h-full w-full object-cover" />
@@ -1205,7 +1186,13 @@ export default function OrderForm() {
               </div>
             )}
 
-            <div className="mt-6 border-t border-border pt-4">
+            <div className="mt-5 border-t border-border pt-4">
+              {!overallHasCustom && (totalPieceCount > 1 || rushCents > 0) && (
+                <div className="mb-1 flex items-baseline justify-between text-sm text-foreground/70">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(cartSubtotal + currentSubtotal)}</span>
+                </div>
+              )}
               {!overallHasCustom && (
                 <div className="flex items-baseline justify-between text-sm text-foreground/70">
                   <span>Frete{addressFilled && isFreeShipping ? " · Campo Grande, MS" : ""}</span>
@@ -1215,28 +1202,16 @@ export default function OrderForm() {
                 </div>
               )}
               {!overallHasCustom && rushCents > 0 && (
-                <div className="mt-1">
-                  <div className="flex items-baseline justify-between text-sm text-foreground/70">
-                    <span>Prazo · {getRushOption(rushOption).label}</span>
-                    <span>{formatPrice(rushCents)}</span>
-                  </div>
-                  {totalPieceCount > 1 && (
-                    <p className="text-right text-[11px] text-muted">
-                      {formatPrice(rushCentsPerPiece)} × {totalPieceCount} peças
-                    </p>
-                  )}
+                <div className="mt-1 flex items-baseline justify-between text-sm text-foreground/70">
+                  <span>Prazo · {getRushOption(rushOption).label}</span>
+                  <span>{formatPrice(rushCents)}</span>
                 </div>
               )}
               <div className={`flex items-baseline justify-between ${!overallHasCustom ? "mt-2" : ""}`}>
                 <span className="text-sm text-foreground/70">{overallHasCustom ? "Valor" : "Total"}</span>
-                <span className="font-serif-display text-2xl text-accent">{formatPrice(grandTotal)}</span>
+                <span className="font-serif-display text-2xl text-accent">{formatPriceOrQuote(grandTotal)}</span>
               </div>
             </div>
-            {overallHasCustom && (
-              <p className="mt-1 text-xs text-muted">
-                Sem cobrança agora — enviamos um orçamento antes de qualquer pagamento.
-              </p>
-            )}
 
             {submitError && <p className="mt-4 text-xs text-accent">{submitError}</p>}
 
@@ -1266,24 +1241,11 @@ export default function OrderForm() {
                 </button>
               </>
             )}
-
-            <ul className="mt-6 space-y-2 border-t border-border pt-4 text-xs text-foreground/70">
-              <li className="flex items-center gap-2">
-                <Paintbrush size={14} className="shrink-0 text-accent" /> Pintado à mão, peça única
-              </li>
-              <li className="flex items-center gap-2">
-                <Lock size={14} className="shrink-0 text-accent" />
-                {overallHasCustom ? "Orçamento sem compromisso" : "Cartão em até 3x ou Pix"}
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail size={14} className="shrink-0 text-accent" /> Você acompanha cada etapa por e-mail
-              </li>
-            </ul>
           </div>
         </aside>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-6 py-4 backdrop-blur lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 rounded-t-summary border-t border-border bg-background/95 px-6 py-4 backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
           <div>
             {step === 2 && (
@@ -1296,7 +1258,7 @@ export default function OrderForm() {
               </button>
             )}
             <p className="text-[11px] text-muted">{overallHasCustom ? "Valor" : "Total"}</p>
-            <p className="font-serif-display text-lg text-accent">{formatPrice(grandTotal)}</p>
+            <p className="font-serif-display text-lg text-accent">{formatPriceOrQuote(grandTotal)}</p>
           </div>
           {step === 1 ? (
             <Button type="submit" className="flex-1 max-w-[220px]">

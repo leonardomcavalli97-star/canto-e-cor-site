@@ -16,12 +16,7 @@ export default function PedidoPage() {
           Vamos pintar a sua aquarela
         </h1>
         <p className="mt-4 text-foreground/70">
-          Preencha os campos abaixo com o tamanho desejado, uma foto de referência e uma
-          breve descrição. No final você será direcionado(a) para o pagamento.
-        </p>
-        <p className="mt-2 text-sm text-foreground/60">
-          Prazo padrão de entrega: <strong className="font-medium text-foreground/80">até 1 mês</strong>{" "}
-          — se precisar antes, dá pra escolher um prazo expresso lá no fim do formulário.
+          Escolha o tamanho, envie sua foto e personalize sua aquarela.
         </p>
       </div>
 

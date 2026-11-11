@@ -24,6 +24,19 @@
   --font-sans: var(--font-body);
 }
 
+/* Cantos arredondados do checkout. Cada token vira uma utility `rounded-*`
+   (ex.: `rounded-card`), então o mesmo valor é usado em todas as etapas. */
+@theme {
+  --radius-card: 16px; /* cards de seleção (tamanho, prazo) */
+  --radius-summary: 18px; /* resumo do pedido e caixas de pagamento */
+  --radius-button: 12px; /* botões principais */
+  --radius-field: 10px; /* campos de formulário e miniaturas */
+  --radius-control: 10px; /* controles de quantidade e etiquetas de tema */
+  --radius-notice: 12px; /* avisos e caixas informativas */
+  --radius-upload: 14px; /* área de upload de fotos */
+  --radius-pill: 999px; /* etiquetas de preço */
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

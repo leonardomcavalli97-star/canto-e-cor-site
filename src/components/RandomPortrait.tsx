@@ -22,7 +22,7 @@ export default function RandomPortrait() {
   }, []);
 
   return (
-    <div className="relative aspect-[3/2] w-full overflow-hidden bg-surface">
+    <div className="relative aspect-[3/2] w-full overflow-hidden rounded-card bg-surface">
       <Image
         src={src}
         alt="Lívia, do Ateliê Canto e Cor"

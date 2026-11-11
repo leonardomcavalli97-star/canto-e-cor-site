@@ -46,7 +46,7 @@ export default function PortfolioCarousel({ className = "" }: { className?: stri
       }}
       aria-label={paused ? "Continuar apresentação" : "Pausar apresentação"}
       aria-pressed={paused}
-      className={`relative aspect-[3/4] w-full cursor-pointer overflow-hidden bg-surface ${className}`}
+      className={`relative aspect-[3/4] w-full cursor-pointer overflow-hidden rounded-card bg-surface ${className}`}
     >
       <Image
         key={index}

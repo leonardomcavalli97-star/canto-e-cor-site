@@ -1,4 +1,4 @@
-export type PaperSize = "A5" | "A4" | "personalizado";
+export type PaperSize = "A5" | "A4" | "flashcard" | "personalizado";
 
 export const PAPER_SIZES: Record<
   PaperSize,
@@ -6,21 +6,29 @@ export const PAPER_SIZES: Record<
 > = {
   A5: {
     label: "A5",
-    dimensions: "14,8 x 21 cm",
+    dimensions: "14,8 × 21 cm",
     priceCents: 18000,
-    description: "Ideal para desenhos delicados e versáteis, ótima opção para presentes e retratos.",
+    description: "Para desenhos delicados, ótimo para presentes e retratos.",
   },
   A4: {
     label: "A4",
-    dimensions: "21 x 29,7 cm",
+    dimensions: "21 × 29,7 cm",
     priceCents: 21000,
-    description: "Ideal para desenhos com riquezas de detalhes, ótima opção para quadros e decoração.",
+    description: "Para desenhos ricos em detalhes, ótimo para quadros e decoração.",
+  },
+  // A descrição do Flashcards também é o aviso de que o formato só comporta
+  // desenhos simples — não remover o "poucos detalhes".
+  flashcard: {
+    label: "Flashcards",
+    dimensions: "10,5 × 14,5 cm",
+    priceCents: 3500,
+    description: "Para pinturas divertidas, com referências simples e poucos detalhes.",
   },
   personalizado: {
     label: "Personalizado",
-    dimensions: "Tamanho a combinar",
+    dimensions: "Tamanho sob medida",
     priceCents: null,
-    description: "Quer outro tamanho, formato ou um quadro maior? Conte o que imagina e enviamos um orçamento antes de qualquer cobrança.",
+    description: "Outro tamanho ou formato? Enviamos um orçamento antes de cobrar.",
   },
 };
 
@@ -78,6 +86,12 @@ export function formatBRL(cents: number) {
 
 export function formatPrice(cents: number | null) {
   return cents === null ? "Valor a combinar" : formatBRL(cents);
+}
+
+// Rótulo usado só no checkout para itens sem preço fixo. O resto do sistema
+// (admin, e-mails, acompanhamento) continua usando formatPrice.
+export function formatPriceOrQuote(cents: number | null) {
+  return cents === null ? "Sob orçamento" : formatBRL(cents);
 }
 
 export const MAX_INSTALLMENTS = 3;

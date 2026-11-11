@@ -19,7 +19,7 @@ export default async function PedidoPagamentoPage({
         Falta só o pagamento
       </h1>
       <p className="mt-4 text-foreground/80">
-        Sua encomenda já foi registrada. Finalize o pagamento para começarmos a pintar.
+        Sua encomenda foi registrada. Finalize para começarmos a pintar.
       </p>
 
       {orderId ? (

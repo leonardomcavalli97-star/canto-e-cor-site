@@ -14,7 +14,7 @@ export default function ArtworkCard({
   priority?: boolean;
 }) {
   return (
-    <div className={`relative aspect-[3/4] w-full overflow-hidden bg-surface ${className}`}>
+    <div className={`relative aspect-[3/4] w-full overflow-hidden rounded-card bg-surface ${className}`}>
       <Image
         src={src}
         alt={alt}

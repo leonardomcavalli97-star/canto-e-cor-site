@@ -22,7 +22,7 @@ export default function OrderStatusLookupForm() {
         value={orderId}
         onChange={(e) => setOrderId(e.target.value)}
         placeholder="Cole aqui o código do seu pedido"
-        className="w-full border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
+        className="w-full rounded-field border border-border bg-surface p-3 text-sm outline-none focus:border-accent"
       />
       <Button type="submit" className="shrink-0">
         Consultar
