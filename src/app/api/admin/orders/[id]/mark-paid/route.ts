@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { ADMIN_COOKIE_NAME, isValidSession } from "@/lib/adminAuth";
 import { updateOrderStatus } from "@/lib/orders";
 import { sendPaymentConfirmedEmail } from "@/lib/email";
+import { markCouponUsed } from "@/lib/coupons";
 
 export async function POST(
   _req: NextRequest,
@@ -17,6 +18,12 @@ export async function POST(
 
   const { id } = await ctx.params;
   const order = await updateOrderStatus(id, "paid");
+  // Pagamento registrado à mão também gasta o cupom (uso único).
+  if (order.couponCode) {
+    await markCouponUsed(order.couponCode, id).catch((error) => {
+      console.error("Falha ao marcar cupom como usado", id, error);
+    });
+  }
   try {
     await sendPaymentConfirmedEmail(order.email, order.name);
   } catch (error) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE_NAME, isValidSession } from "@/lib/adminAuth";
 import { trashOrder } from "@/lib/orders";
+import { releaseCoupon } from "@/lib/coupons";
 
 export async function DELETE(
   _req: NextRequest,
@@ -15,6 +16,11 @@ export async function DELETE(
   }
 
   const { id } = await ctx.params;
-  await trashOrder(id);
+  const order = await trashOrder(id);
+  if (order.couponCode) {
+    await releaseCoupon(order.couponCode, id).catch((error) => {
+      console.error("Falha ao liberar a reserva do cupom", id, error);
+    });
+  }
   return NextResponse.json({ ok: true });
 }

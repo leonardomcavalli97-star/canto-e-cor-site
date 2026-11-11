@@ -158,7 +158,7 @@ export async function confirmInfinitePayPayment(params: {
   if (alreadyPaid) return "already_paid";
 
   if (order.couponCode) {
-    await markCouponUsed(order.id).catch((error) => {
+    await markCouponUsed(order.couponCode, order.id).catch((error) => {
       console.error("Falha ao marcar cupom como usado", order.id, error);
     });
   }

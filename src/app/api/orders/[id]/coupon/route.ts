@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrder, setOrderCoupon, getPayableAmountCents } from "@/lib/orders";
-import { findCoupon, calculateDiscountCents, isCouponUsed } from "@/lib/coupons";
+import {
+  findCoupon,
+  calculateDiscountCents,
+  getCouponAvailability,
+  couponUnavailableMessage,
+  releaseCoupon,
+} from "@/lib/coupons";
 
 export async function POST(
   req: NextRequest,
@@ -25,12 +31,20 @@ export async function POST(
   if (!coupon) {
     return NextResponse.json({ error: "Cupom inválido." }, { status: 404 });
   }
-  if (order.couponCode !== coupon.code && (await isCouponUsed())) {
-    return NextResponse.json({ error: "Este cupom já foi utilizado." }, { status: 409 });
+  const availability = await getCouponAvailability(coupon.code, id);
+  if (availability !== "available") {
+    return NextResponse.json({ error: couponUnavailableMessage(availability) }, { status: 409 });
   }
 
   const discountCents = calculateDiscountCents(order.totalPriceCents, coupon.percentOff);
   const updated = await setOrderCoupon(id, { code: coupon.code, discountCents });
+
+  // Trocou um cupom por outro: o anterior (se estava reservado) volta a ficar livre.
+  if (order.couponCode && order.couponCode !== coupon.code) {
+    await releaseCoupon(order.couponCode, id).catch((error) => {
+      console.error("Falha ao liberar a reserva do cupom", id, error);
+    });
+  }
 
   return NextResponse.json({
     couponCode: updated.couponCode,
@@ -54,6 +68,12 @@ export async function DELETE(
   }
 
   const updated = await setOrderCoupon(id, null);
+  // Sem cupom no pedido, a reserva (se existir) volta a ficar livre.
+  if (order.couponCode) {
+    await releaseCoupon(order.couponCode, id).catch((error) => {
+      console.error("Falha ao liberar a reserva do cupom", id, error);
+    });
+  }
   return NextResponse.json({
     subtotalCents: updated.totalPriceCents,
     amountCents: getPayableAmountCents(updated),

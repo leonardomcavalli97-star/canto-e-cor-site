@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrder } from "@/lib/orders";
+import { getOrder, getPayableAmountCents, setOrderCoupon } from "@/lib/orders";
 import { createCheckoutLink, getInfinitePayHandle } from "@/lib/infinitepay";
+import { couponUnavailableMessage, releaseCoupon, reserveCoupon } from "@/lib/coupons";
 
 export async function POST(
   req: NextRequest,
@@ -21,10 +22,35 @@ export async function POST(
   }
 
   try {
+    // Antes de gerar um link com desconto, confere se o cupom ainda vale
+    // (validade e, nos de uso único, reserva para este pedido). Se expirou ou
+    // outro pedido já pagou/está com ele, o desconto sai do pedido e a pessoa
+    // vê o valor atualizado antes de pagar.
+    if (order.couponCode) {
+      const reservation = await reserveCoupon(order.couponCode, order.id);
+      if (!reservation.ok) {
+        const updated = await setOrderCoupon(order.id, null);
+        return NextResponse.json(
+          {
+            error: `${couponUnavailableMessage(reservation.reason)} O valor foi atualizado.`,
+            couponRemoved: true,
+            couponCode: null,
+            subtotalCents: updated.totalPriceCents,
+            discountCents: 0,
+            amountCents: getPayableAmountCents(updated),
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const url = await createCheckoutLink(handle, order, req.nextUrl.origin);
     return NextResponse.json({ url });
   } catch (error) {
     console.error("Falha ao criar link InfinitePay", id, error);
+    if (order.couponCode) {
+      await releaseCoupon(order.couponCode, order.id).catch(() => {});
+    }
     return NextResponse.json(
       { error: "Não foi possível abrir o pagamento agora. Tente novamente em instantes." },
       { status: 502 }

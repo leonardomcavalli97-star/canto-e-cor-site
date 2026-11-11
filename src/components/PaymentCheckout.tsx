@@ -143,6 +143,20 @@ export default function PaymentCheckout({ orderId }: { orderId: string }) {
       const res = await fetch(`/api/orders/${orderId}/infinitepay`, { method: "POST" });
       const json = await res.json();
       if (!res.ok || !json.url) {
+        if (json.couponRemoved) {
+          // O cupom deixou de valer (outro pedido já usou/reservou): mostra o valor atualizado.
+          setData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  amountCents: json.amountCents,
+                  subtotalCents: json.subtotalCents,
+                  discountCents: 0,
+                  couponCode: null,
+                }
+              : prev
+          );
+        }
         setStartError(json.error ?? "Não foi possível abrir o pagamento agora.");
         setStarting(null);
         return;
