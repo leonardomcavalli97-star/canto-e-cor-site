@@ -92,6 +92,43 @@ describe("findCoupon: SORELLAS10", () => {
   });
 });
 
+describe("CANTOECOR10: no expiry, unlimited use", () => {
+  const CODE = "CANTOECOR10";
+
+  beforeEach(() => {
+    blob.store.clear();
+  });
+
+  it("is 10% off, multi-use and has no expiry date", () => {
+    const coupon = findCoupon("  cantoecor10 ");
+    expect(coupon?.code).toBe(CODE);
+    expect(coupon?.percentOff).toBe(10);
+    expect(coupon?.singleUse).toBe(false);
+    expect(coupon?.expiresAt).toBeUndefined();
+  });
+
+  it("is still valid years from now", async () => {
+    const farFuture = Date.parse("2099-12-31T23:59:59Z");
+    expect(isCouponExpired(findCoupon(CODE)!, farFuture)).toBe(false);
+    expect(await getCouponAvailability(CODE, "A", farFuture)).toBe("available");
+    expect(await reserveCoupon(CODE, "A", farFuture)).toEqual({ ok: true });
+  });
+
+  it("any number of orders can use it, and it never writes to storage", async () => {
+    const results = await Promise.all(
+      ["A", "B", "C", "D", "E"].map((order) => reserveCoupon(CODE, order))
+    );
+    expect(results.every((r) => r.ok)).toBe(true);
+    await markCouponUsed(CODE, "A");
+    expect(await getCouponAvailability(CODE, "B")).toBe("available");
+    expect(blob.store.size).toBe(0);
+  });
+
+  it("takes 10% off the whole order total", () => {
+    expect(calculateDiscountCents(23500, findCoupon(CODE)!.percentOff)).toBe(2350);
+  });
+});
+
 describe("calculateDiscountCents", () => {
   it("rounds to the nearest cent", () => {
     expect(calculateDiscountCents(18000, 10)).toBe(1800);

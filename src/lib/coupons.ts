@@ -14,6 +14,8 @@ const COUPONS: Coupon[] = [
   { code: "ATELIE10", percentOff: 10, singleUse: true },
   // Vale até o fim do dia 15/11/2026 no horário de Campo Grande (UTC-4).
   { code: "SORELLAS10", percentOff: 10, singleUse: false, expiresAt: "2026-11-15T23:59:59.999-04:00" },
+  // Sem validade e sem limite de usos: vale para qualquer pedido, sempre.
+  { code: "CANTOECOR10", percentOff: 10, singleUse: false },
 ];
 
 export function findCoupon(input: string): Coupon | null {
